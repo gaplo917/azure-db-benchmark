@@ -13,6 +13,9 @@ CREATE TABLE companies (
   updated_at timestamp without time zone NOT NULL
 );
 
+CREATE INDEX companies_created_at_idx ON companies (created_at);
+CREATE INDEX companies_updated_at_idx ON companies (updated_at);
+
 CREATE TABLE campaigns (
   id bigserial,
   company_id bigint REFERENCES companies (id),
@@ -26,6 +29,11 @@ CREATE TABLE campaigns (
 
   PRIMARY KEY (company_id, id)
 );
+
+CREATE INDEX campaigns_created_at_idx ON campaigns (created_at);
+CREATE INDEX campaigns_updated_at_idx ON campaigns (updated_at);
+CREATE INDEX campaigns_state_idx ON campaigns (state);
+CREATE INDEX campaigns_monthly_budget_idx ON campaigns (monthly_budget);
 
 CREATE TABLE ads (
     id bigserial,
@@ -44,6 +52,9 @@ CREATE TABLE ads (
         REFERENCES campaigns (company_id, id)
 );
 
+CREATE INDEX ads_created_at_idx ON ads (created_at);
+CREATE INDEX ads_updated_at_idx ON ads (updated_at);
+
 CREATE TABLE clicks (
     id bigserial,
     company_id bigint,
@@ -59,6 +70,9 @@ CREATE TABLE clicks (
         REFERENCES ads (company_id, id)
 );
 
+CREATE INDEX clicks_cost_per_click_usd_idx ON clicks (cost_per_click_usd);
+CREATE INDEX clicks_clicked_at_idx ON clicks (clicked_at);
+
 CREATE TABLE impressions (
     id bigserial,
     company_id bigint,
@@ -73,3 +87,6 @@ CREATE TABLE impressions (
     FOREIGN KEY (company_id, ad_id)
         REFERENCES ads (company_id, id)
 );
+
+CREATE INDEX impressions_cost_per_impression_usd_idx ON impressions (cost_per_impression_usd);
+CREATE INDEX impressions_seen_at_idx ON impressions (seen_at);
