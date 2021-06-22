@@ -180,7 +180,7 @@ const impressionToArray = ({ companyId, adId, impression }) => {
 async function insert() {
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
-    max: 250,
+    max: process.env.PGMAXCONN,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 30000
   })
@@ -198,7 +198,7 @@ async function insert() {
     totalInsertCount
   })
 
-  const runJob = async pos0 => {
+  const busyDispatcher = async pos0 => {
     const { rows: r0 } = await pool.query(
       insertCompany,
       companyToArray(company[pos0 % company.length])
@@ -263,24 +263,24 @@ async function insert() {
 
   const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
   const getProgress = () => Number(inserted / totalInsertCount).toFixed(4)
-  const getInsertRate = () => Number(inserted / getTimeElapsedInSeconds()).toFixed(2)
+  const getRate = () => Number(inserted / getTimeElapsedInSeconds()).toFixed(2)
   const displayProgressInterval = setInterval(() => {
     logger.info({
       inserted,
       progress: getProgress(),
-      insertRate: `${getInsertRate()}/s`,
+      insertRate: `${getRate()}/s`,
       timeElapsedInSeconds: getTimeElapsedInSeconds()
     })
   }, 1000)
 
-  await Promise.all(new Array(company.length).fill(null).map((_, index) => runJob(index)))
+  await Promise.all(new Array(company.length).fill(null).map((_, index) => busyDispatcher(index)))
 
   clearInterval(displayProgressInterval)
 
   logger.info({
     inserted,
     progress: getProgress(),
-    insertRate: `${getInsertRate()}/s`,
+    insertRate: `${getRate()}/s`,
     timeElapsedInSeconds: getTimeElapsedInSeconds()
   })
 
