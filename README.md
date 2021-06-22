@@ -4,11 +4,13 @@ TBD
 
 ### Local development
 ```bash
-docker compose -f stack.yml up
-```
+# node 12 works, node 14 has some V8 bugs on JSON.stringify big js object
+nvm use 12.18.3
 
-### Init Database
-```bash
+# init local postgresql
+docker compose -f stack.yml up
+
+# init local database, can use it to init remote database as well
 docker run \
 -it \
 -e PGPASSWORD=example \
@@ -21,10 +23,16 @@ psql \
 -U postgres \
 -a \
 -f /app/scripts/init.sql
-```
 
-### Run Benchmark
-```bash
-# pre-generate fake data for later insert
+# create .env
+mv .env.local .env
+
+# pre-generate lots of fake data to insert
 yarn data
+
+# benchmark insert
+yarn insert-set1
+
+# benchmark query
+yarn query
 ```
