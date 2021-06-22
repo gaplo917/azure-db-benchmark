@@ -118,15 +118,16 @@ let queried = 0
 let cursor = 0
 
 async function busyDispatcher(pool) {
-  while (queried <= totalQueryCount) {
-    const [query, paramList] = queryJobs[cursor % queryJobs.length]
+  while (queryJobs.length > 0) {
+    const index = cursor++ % queryJobs.length
+    const [query, paramList] = queryJobs[index]
     if (paramList.length === 0) {
-      cursor++
+      // remove the job from job list
+      queryJobs.splice(index, 1)
       continue
     }
     const param = paramList.pop()
     await pool.query(query, param)
-    cursor++
     queried++
   }
 }
