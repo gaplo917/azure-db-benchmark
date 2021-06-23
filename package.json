@@ -13,6 +13,7 @@
     "prettier": "^2.3.1"
   },
   "scripts": {
+    "ping": "node ping.js",
     "data": "node --max-old-space-size=4096 fake-data.js",
     "insert-set1": "node --max-old-space-size=4096 insert.js ./data/set1",
     "insert-set2": "node --max-old-space-size=4096 insert.js ./data/set2",
