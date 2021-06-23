@@ -1,0 +1,10 @@
+apps:
+  - script   : ./src/insert.js
+    node_args: '--max-old-space-size=2048'
+    args: '34' # 100GB Data
+    name     : 'insert'
+    instances: 3
+    exec_mode: fork
+    autorestart: false
+    env:
+      PGMAXCONN: 90 # override max connection

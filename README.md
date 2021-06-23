@@ -76,3 +76,18 @@ yarn insert 1
 # benchmark query with base coefficient of workload
 yarn query 10000
 ```
+
+### Advance Usage
+if you need to run single instance is a bottleneck to benchmark your database, you need to run multiple benchmark instance
+```bash
+npm install -g pm2
+
+# create pm2 config
+mv insert.pm2.config.example.yaml insert.pm2.config.yaml
+
+# start
+pm2 start insert.pm2.config.yaml
+
+# Show logs
+pm2 logs
+```
