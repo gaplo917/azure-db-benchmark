@@ -13,7 +13,11 @@ async function ping() {
 
   const { rows } = await pool.query('SELECT NOW()')
 
-  logger.info({ rows, 'process.env.PGMAXCONN': process.env.PGMAXCONN })
+  logger.info({
+    rows,
+    'process.env.PGMAXCONN': process.env.PGMAXCONN,
+    'process.env.DISPATCH_CONCURRENCY': process.env.DISPATCH_CONCURRENCY
+  })
   // release pool before exist
   pool.end()
 

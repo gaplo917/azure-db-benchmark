@@ -133,12 +133,13 @@ async function busyDispatcher(pool) {
 }
 
 async function query() {
-  const concurrency = 2000
+  const concurrency = Number(process.env.DISPATCH_CONCURRENCY) || 2000
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
-    max: process.env.PGMAXCONN,
+    max: Number(process.env.PGMAXCONN) || 50,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000
+    connectionTimeoutMillis: 300000,
+    query_timeout: 3000000
   })
   await pool.connect()
   const start = new Date().getTime()
@@ -146,7 +147,7 @@ async function query() {
     queried,
     progress: 0,
     totalQueryCount,
-    queryRate: `0/s`,
+    queryRate: 0,
     timeElapsedInSeconds: 0
   })
   const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)

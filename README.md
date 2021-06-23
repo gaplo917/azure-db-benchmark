@@ -4,7 +4,7 @@ TBD
 
 ### Local development
 ```bash
-# node 12 works, node 14 has some V8 bugs on JSON.stringify big js object
+# node 12 works, node 14 has some V8 bugs on JSON.stringify big js object on 'yarn data'
 nvm use 12.18.3
 
 # init local postgresql
@@ -27,12 +27,52 @@ psql \
 # create .env
 mv .env.local .env
 
-# pre-generate lots of fake data to insert
+# (Optional) pre-generate lots of fake data to preview it
 yarn data
 
+# test connection
+yarn ping
+
 # benchmark insert
-yarn insert-set1
+yarn insert
 
 # benchmark query
 yarn query
+```
+
+### Benchmark Client
+```bash
+# install node
+curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+source ~/.bashrc
+nvm install 12.18.3
+npm install -g yarn
+
+# clone source
+git clone https://github.com/gaplo917/azure-db-benchmark
+
+cd azure-db-benchmark
+
+# install dependencies
+yarn
+
+# create 
+cp .env.local .env
+
+# edit remote database
+vi .env
+
+# test connection
+yarn ping
+
+# init database
+yarn reset 
+# OR if it is a citus powered postgresql
+yarn reset-citus
+
+# benchmark insert, with 1 copy (2.2M records, ~1GB)
+yarn insert 1
+
+# benchmark query with base coefficient of workload
+yarn query 10000
 ```

@@ -1,12 +1,7 @@
 require('dotenv').config()
-const path = require('path')
 const { Pool } = require('pg')
 const logger = require('pino')()
-const dataDir = path.resolve(String(process.argv[2]))
-
-if (!dataDir) {
-  throw new Error('missing argument for data directory')
-}
+const numOfCopies = Number(process.argv[2]) || 1
 
 const insertCompany = `
   INSERT INTO companies(
@@ -23,6 +18,9 @@ const insertCompany = `
     $4
   ) RETURNING id;
 `
+const companyToQueryParam = company => {
+  return [company.name, company.image_url, company.created_at, company.updated_at]
+}
 
 const insertCampaign = `
   INSERT INTO campaigns(
@@ -47,7 +45,18 @@ const insertCampaign = `
     $8
   ) RETURNING id;
 `
-
+const campaignToQueryParam = ({ companyId, campaign }) => {
+  return [
+    companyId,
+    campaign.name,
+    campaign.cost_model,
+    campaign.state,
+    campaign.monthly_budget,
+    campaign.blacklisted_site_urls,
+    campaign.created_at,
+    campaign.updated_at
+  ]
+}
 const insertAd = `
   INSERT INTO ads(
     id,
@@ -74,6 +83,19 @@ const insertAd = `
   ) RETURNING id;
 `
 
+const adToQueryParam = ({ companyId, campaignId, ad }) => {
+  return [
+    companyId,
+    campaignId,
+    ad.name,
+    ad.image_url,
+    ad.target_url,
+    ad.impressions_count,
+    ad.clicks_count,
+    ad.created_at,
+    ad.updated_at
+  ]
+}
 const insertClicks = `
   INSERT INTO clicks(
     id,
@@ -95,6 +117,17 @@ const insertClicks = `
     $7
   ) RETURNING id;
 `
+const clickToQueryParam = ({ companyId, adId, click }) => {
+  return [
+    companyId,
+    adId,
+    click.clicked_at,
+    click.site_url,
+    click.cost_per_click_usd,
+    click.user_ip,
+    click.user_data
+  ]
+}
 
 const insertImpression = `
   INSERT INTO impressions(
@@ -117,55 +150,7 @@ const insertImpression = `
     $7
   ) RETURNING id;
 `
-const company = require(`${dataDir}/company.json`)
-const campaign = require(`${dataDir}/campaign.json`)
-const ads = require(`${dataDir}/ads.json`)
-const click = require(`${dataDir}/click.json`)
-const impression = require(`${dataDir}/impression.json`)
-
-const companyToArray = company => {
-  return [company.name, company.image_url, company.created_at, company.updated_at]
-}
-
-const campaignToArray = ({ companyId, campaign }) => {
-  return [
-    companyId,
-    campaign.name,
-    campaign.cost_model,
-    campaign.state,
-    campaign.monthly_budget,
-    campaign.blacklisted_site_urls,
-    campaign.created_at,
-    campaign.updated_at
-  ]
-}
-
-const adToArray = ({ companyId, campaignId, ad }) => {
-  return [
-    companyId,
-    campaignId,
-    ad.name,
-    ad.image_url,
-    ad.target_url,
-    ad.impressions_count,
-    ad.clicks_count,
-    ad.created_at,
-    ad.updated_at
-  ]
-}
-const clickToArray = ({ companyId, adId, click }) => {
-  return [
-    companyId,
-    adId,
-    click.clicked_at,
-    click.site_url,
-    click.cost_per_click_usd,
-    click.user_ip,
-    click.user_data
-  ]
-}
-
-const impressionToArray = ({ companyId, adId, impression }) => {
+const impressionToQueryParam = ({ companyId, adId, impression }) => {
   return [
     companyId,
     adId,
@@ -177,32 +162,16 @@ const impressionToArray = ({ companyId, adId, impression }) => {
   ]
 }
 
-async function insert() {
-  const pool = new Pool({
-    connectionString: process.env.PGCONNECTIONSTRING,
-    max: process.env.PGMAXCONN,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 30000
-  })
-  await pool.connect()
-  const start = new Date().getTime()
-  const totalInsertCount =
-    company.length + campaign.length + ads.length + click.length + impression.length
-  let inserted = 0
+const { generateData } = require('./fake-data')
+const { company, campaign, ads, click, impression, numOfRecords } = generateData(1)
 
-  logger.info({
-    dataDir,
-    inserted,
-    progress: 0,
-    timeElapsedInSeconds: 0,
-    totalInsertCount
-  })
+const totalInsertCount = numOfRecords * numOfCopies
+let inserted = 0
 
-  const busyDispatcher = async pos0 => {
-    const { rows: r0 } = await pool.query(
-      insertCompany,
-      companyToArray(company[pos0 % company.length])
-    )
+const busyDispatcher = async (pool, pos0) => {
+  // write enough copy
+  for (let writtenCopy = 0; writtenCopy < numOfCopies; writtenCopy++) {
+    const { rows: r0 } = await pool.query(insertCompany, companyToQueryParam(company[pos0]))
     inserted++
     const { id: companyId } = r0[0]
 
@@ -212,7 +181,7 @@ async function insert() {
       const pos1 = pos0 * div0 + i
       const { rows: r1 } = await pool.query(
         insertCampaign,
-        campaignToArray({ companyId, campaign: campaign[pos1] })
+        campaignToQueryParam({ companyId, campaign: campaign[pos1] })
       )
       inserted++
       const { id: campaignId } = r1[0]
@@ -223,7 +192,7 @@ async function insert() {
         const pos2 = pos1 * div1 + j
         const { rows: r2 } = await pool.query(
           insertAd,
-          adToArray({ companyId, campaignId, ad: ads[pos2] })
+          adToQueryParam({ companyId, campaignId, ad: ads[pos2] })
         )
         inserted++
         const { id: adId } = r2[0]
@@ -234,7 +203,7 @@ async function insert() {
           const pos3 = pos2 * div2 + k
           await pool.query(
             insertClicks,
-            clickToArray({
+            clickToQueryParam({
               companyId,
               adId,
               click: click[pos3]
@@ -249,7 +218,7 @@ async function insert() {
           const pos3 = pos2 * div3 + k
           await pool.query(
             insertImpression,
-            impressionToArray({
+            impressionToQueryParam({
               companyId,
               adId,
               impression: impression[pos3]
@@ -260,6 +229,28 @@ async function insert() {
       }
     }
   }
+}
+
+async function insert() {
+  const concurrency = Number(process.env.DISPATCH_CONCURRENCY) || 2000
+  const pool = new Pool({
+    connectionString: process.env.PGCONNECTIONSTRING,
+    max: Number(process.env.PGMAXCONN) || 50,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 300000,
+    query_timeout: 3000000
+  })
+  await pool.connect()
+  const start = new Date().getTime()
+
+  logger.info({
+    inserted,
+    progress: 0,
+    timeElapsedInSeconds: 0,
+    numOfCopies,
+    numOfRecords,
+    totalInsertCount
+  })
 
   const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
   const getProgress = () => Number(inserted / totalInsertCount).toFixed(4)
@@ -273,7 +264,11 @@ async function insert() {
     })
   }, 1000)
 
-  await Promise.all(new Array(company.length).fill(null).map((_, index) => busyDispatcher(index)))
+  await Promise.all(
+    new Array(concurrency)
+      .fill(null)
+      .map((_, index) => busyDispatcher(pool, index % company.length))
+  )
 
   clearInterval(displayProgressInterval)
 

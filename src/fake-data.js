@@ -6,8 +6,14 @@ const campaignCount = companyCount * 10
 const adsCount = campaignCount
 const clickCount = adsCount * 10
 const impressionCount = clickCount * 10
+const isWriteToFile = String(process.argv[1]) === 'data'
+const logger = require('pino')()
 
-function generateData(dir, seed) {
+function generateData(seed) {
+  logger.info({
+    message: 'generating data',
+    seed
+  })
   // reproducible generation
   faker.seed(seed)
 
@@ -17,8 +23,6 @@ function generateData(dir, seed) {
     created_at: faker.date.between('2015-01-01', '2021-01-01'),
     updated_at: faker.date.between('2021-01-01', '2021-06-01')
   }))
-
-  fs.writeFileSync(dir + '/company.json', JSON.stringify(company, null))
 
   const campaign = new Array(campaignCount).fill(null).map(() => ({
     name: faker.name.findName(faker.name.firstName(), faker.name.lastName(), faker.name.gender()),
@@ -30,8 +34,6 @@ function generateData(dir, seed) {
     updated_at: faker.date.between('2021-01-01', '2021-06-01')
   }))
 
-  fs.writeFileSync(dir + '/campaign.json', JSON.stringify(campaign, null))
-
   const ads = new Array(adsCount).fill(null).map(() => ({
     name: faker.name.findName(faker.name.firstName(), faker.name.lastName(), faker.name.gender()),
     image_url: faker.image.imageUrl(faker.datatype.number(), faker.datatype.number()),
@@ -42,8 +44,6 @@ function generateData(dir, seed) {
     updated_at: faker.date.between('2021-01-01', '2021-06-01')
   }))
 
-  fs.writeFileSync(dir + '/ads.json', JSON.stringify(ads, null))
-
   const click = new Array(clickCount).fill(null).map(() => ({
     clicked_at: faker.date.between('2015-01-01', '2021-01-01'),
     site_url: faker.internet.url(),
@@ -51,8 +51,6 @@ function generateData(dir, seed) {
     user_ip: faker.internet.ip(),
     user_data: faker.datatype.json()
   }))
-
-  fs.writeFileSync(dir + '/click.json', JSON.stringify(click, null))
 
   const impression = new Array(impressionCount).fill(null).map(() => ({
     seen_at: faker.date.between('2015-01-01', '2021-01-01'),
@@ -62,9 +60,29 @@ function generateData(dir, seed) {
     user_data: faker.datatype.json()
   }))
 
-  fs.writeFileSync(dir + '/impression.json', JSON.stringify(impression, null))
-}
-const [set1, set2] = [path.resolve('./data/set1'), path.resolve('./data/set2')]
+  const numOfRecords =
+    company.length + campaign.length + ads.length + click.length + impression.length
 
-generateData(set1, 1)
-generateData(set2, 2)
+  return {
+    company,
+    campaign,
+    ads,
+    click,
+    impression,
+    numOfRecords
+  }
+}
+
+// write to file
+if (isWriteToFile) {
+  const set1 = path.resolve(__dirname + '/../data/set1')
+  const { company, campaign, ads, click, impression } = generateData(1)
+
+  fs.writeFileSync(set1 + '/company.json', JSON.stringify(company, null))
+  fs.writeFileSync(set1 + '/campaign.json', JSON.stringify(campaign, null))
+  fs.writeFileSync(set1 + '/ads.json', JSON.stringify(ads, null))
+  fs.writeFileSync(set1 + '/click.json', JSON.stringify(click, null))
+  fs.writeFileSync(set1 + '/impression.json', JSON.stringify(impression, null))
+}
+
+module.exports = { generateData }
