@@ -2,11 +2,12 @@ require('dotenv').config()
 const faker = require('faker')
 const { Pool } = require('pg')
 const logger = require('pino')()
-const workload = Number(process.argv[2]) || 10000
+const workload = Number(process.argv[2]) || 50
 
 // reproducible
 faker.seed(1)
 
+// require table scan
 const heavyQuery1 = `
   SELECT a.campaign_id,
          RANK() OVER (
@@ -26,6 +27,7 @@ const heavyQuery1Params = new Array(workload).fill(null).map(() => {
   return [faker.datatype.number(1000) / 1000]
 })
 
+// large amount of data, but no need table scan
 const heavyQuery2 = `
   SELECT i.*, a.name, a.target_url
   FROM impressions as i
@@ -33,7 +35,7 @@ const heavyQuery2 = `
               ON i.company_id = a.company_id
                 AND i.ad_id = a.id
   WHERE i.cost_per_impression_usd > $1 AND i.seen_at > $2
-  ORDER BY i.cost_per_impression_usd, i.seen_at
+  ORDER BY i.seen_at
   LIMIT 100;
 `
 const heavyQuery2Params = new Array(workload).fill(null).map(() => {
@@ -44,9 +46,11 @@ const query1 = `
   SELECT *
   FROM companies
   WHERE created_at > $1 AND created_at < $2
+  ORDER BY created_at
   LIMIT 100
 `
-const query1Params = new Array(workload * 10).fill(null).map(() => {
+const coeffWorkloadQ1 = 400
+const query1Params = new Array(workload * coeffWorkloadQ1).fill(null).map(() => {
   return [
     faker.date.between('2015-01-01', '2021-01-01'),
     faker.date.between('2015-01-01', '2021-01-01')
@@ -57,9 +61,11 @@ const query2 = `
   SELECT *
   FROM campaigns
   WHERE created_at > $1 AND created_at < $2 AND state = $3  AND monthly_budget > $4
+  ORDER BY created_at
   LIMIT 100
 `
-const query2Params = new Array(workload * 10).fill(null).map(() => {
+const coeffWorkloadQ2 = 400
+const query2Params = new Array(workload * coeffWorkloadQ2).fill(null).map(() => {
   return [
     faker.date.between('2015-01-01', '2021-01-01'),
     faker.date.between('2015-01-01', '2021-01-01'),
@@ -75,9 +81,11 @@ const query3 = `
       ON c.company_id = a.company_id
              AND c.id = a.campaign_id
   WHERE a.created_at > $1 AND a.created_at < $2
+  ORDER BY a.created_at
   LIMIT 100
 `
-const query3Params = new Array(workload * 5).fill(null).map(() => {
+const coeffWorkloadQ3 = 400
+const query3Params = new Array(workload * coeffWorkloadQ3).fill(null).map(() => {
   return [
     faker.date.between('2015-01-01', '2021-01-01'),
     faker.date.between('2015-01-01', '2021-01-01')
@@ -91,19 +99,24 @@ const query4 = `
       ON c.company_id = a.company_id
              AND c.ad_id = a.id
   WHERE a.created_at > $1 AND c.cost_per_click_usd > $2
+  ORDER BY c.cost_per_click_usd
   LIMIT 100
 `
-const query4Params = new Array(workload * 5).fill(null).map(() => {
+const coeffWorkloadQ4 = 20
+const query4Params = new Array(workload * coeffWorkloadQ4).fill(null).map(() => {
   return [faker.date.between('2015-01-01', '2021-01-01'), faker.datatype.number(1000) / 1000]
 })
 
-const queryJobs = [
+const heavyQueryJobs = [
   [heavyQuery1, heavyQuery1Params],
-  [heavyQuery2, heavyQuery2Params],
-  ...new Array(10).fill([query1, query1Params]),
-  ...new Array(10).fill([query2, query2Params]),
-  ...new Array(5).fill([query3, query3Params]),
-  ...new Array(5).fill([query4, query4Params])
+  [heavyQuery2, heavyQuery2Params]
+]
+
+const queryJobs = [
+  [query1, query1Params],
+  [query2, query2Params],
+  [query3, query3Params],
+  [query4, query4Params]
 ]
 
 const totalQueryCount =
@@ -115,15 +128,15 @@ const totalQueryCount =
   query4Params.length
 
 let queried = 0
-let cursor = 0
 
-async function busyDispatcher(pool) {
-  while (queryJobs.length > 0) {
-    const index = cursor++ % queryJobs.length
-    const [query, paramList] = queryJobs[index]
+async function busyDispatcher(pool, jobs) {
+  let cursor = 0
+  while (jobs.length > 0) {
+    const index = cursor++ % jobs.length
+    const [query, paramList] = jobs[index]
     if (paramList.length === 0) {
       // remove the job from job list
-      queryJobs.splice(index, 1)
+      jobs.splice(index, 1)
       continue
     }
     const param = paramList.pop()
@@ -162,7 +175,17 @@ async function query() {
     })
   }, 1000)
 
-  await Promise.all(new Array(concurrency).fill(null).map(() => busyDispatcher(pool)))
+  // 5% dispatchers are heavy
+  const numOfHeavyDispatcher = Math.max(Math.floor(concurrency * 0.05), 1)
+  const heavyQueryPs = new Array(numOfHeavyDispatcher)
+    .fill(null)
+    .map(() => busyDispatcher(pool, heavyQueryJobs))
+
+  const queryPs = new Array(Math.max(concurrency - numOfHeavyDispatcher, 1))
+    .fill(null)
+    .map(() => busyDispatcher(pool, queryJobs))
+
+  await Promise.all([...heavyQueryPs, queryPs])
 
   clearInterval(displayProgressInterval)
 

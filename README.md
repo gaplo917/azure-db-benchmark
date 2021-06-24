@@ -74,7 +74,7 @@ yarn reset-citus
 yarn insert 1
 
 # benchmark query with base coefficient of workload
-yarn query 10000
+yarn query 50
 ```
 
 ### Advance Usage

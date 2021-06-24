@@ -54,6 +54,8 @@ CREATE TABLE ads (
 
 CREATE INDEX ads_created_at_idx ON ads (created_at);
 CREATE INDEX ads_updated_at_idx ON ads (updated_at);
+CREATE INDEX ads_company_id_idx ON ads (company_id);
+CREATE INDEX ads_campaign_id_idx ON ads (campaign_id);
 
 CREATE TABLE clicks (
     id bigserial,
