@@ -16,6 +16,7 @@
     "ping": "node src/ping.js",
     "reset": "node src/reset.js",
     "reset-citus": "node src/reset.js citus",
+    "rebalance": "node src/rebalance.js",
     "data": "node --max-old-space-size=4096 src/fake-data.js",
     "insert": "node --max-old-space-size=4096 src/insert.js",
     "query": "node --max-old-space-size=4096 src/query.js"
