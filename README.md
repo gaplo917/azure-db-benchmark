@@ -34,7 +34,7 @@ yarn query
 # install node
 curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 source ~/.bashrc
-nvm install 12.18.3
+nvm install 14
 npm install -g yarn
 
 # clone source
@@ -60,7 +60,7 @@ yarn reset
 yarn reset-citus
 
 # benchmark insert, with 1 copy (2.2M records, ~800MB)
-yarn insert --worker=1 --concurrency=2000 --maxDbConnection=50 --numOfCopies=1
+yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4000
 
 # benchmark query with base coefficient of workload
 yarn query --worker=1 --concurrency=2000 --maxDbConnection=50 --workload=50

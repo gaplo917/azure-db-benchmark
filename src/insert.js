@@ -73,6 +73,7 @@ if (isMainThread) {
           case Message.INIT:
             workerStats.set(workerId, {
               isDone: false,
+              startedAt: new Date().getTime(),
               inserted: 0,
               timeElapsedInSeconds: 0
             })
@@ -93,6 +94,7 @@ if (isMainThread) {
             workerStats.set(workerId, {
               ...workerStats.get(workerId),
               isDone: true,
+              endedAt: new Date().getTime(),
               timeout: Number(payload.timeout),
               inserted: Number(payload.inserted),
               timeElapsedInSeconds: Number(payload.timeElapsedInSeconds)
@@ -145,7 +147,9 @@ if (isMainThread) {
       return Number(aggregateInserted(stats) / numOfDataSet / numOfRecords).toFixed(4)
     }
     const calcAvgRate = stats => {
-      return Number(aggregateInserted(stats) / timeElapsedInSecondsFrom(start)).toFixed(2)
+      const minStartAt = stats.map(it => it.startedAt).sort((a, b) => a - b)[0]
+      const maxEndAt = stats.map(it => it.endedAt).sort((a, b) => b - a)[0] || new Date().getTime()
+      return Number((aggregateInserted(stats) / (maxEndAt - minStartAt)) * 1000).toFixed(2)
     }
 
     const startScheduledReport = () => {
