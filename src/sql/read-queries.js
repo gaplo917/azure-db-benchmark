@@ -1,5 +1,3 @@
-const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const { workload = 50 } = argv
 // require table scan
 class ReadQueries {
   static heavyQuery1SQL = `
@@ -17,9 +15,10 @@ class ReadQueries {
     ORDER BY a.campaign_id, n_impressions desc
     LIMIT 100;
   `
-  static heavyQuery1Params = new Array(workload).fill(null).map(() => {
-    return [faker.datatype.number(1000) / 1000]
-  })
+  static heavyQuery1Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [faker.datatype.number(1000) / 1000]
+    })
 
   // large amount of data, but no need table scan
   static heavyQuery2SQL = `
@@ -32,9 +31,10 @@ class ReadQueries {
     ORDER BY i.seen_at
     LIMIT 100;
   `
-  static heavyQuery2Params = new Array(workload).fill(null).map(() => {
-    return [faker.datatype.number(1000) / 1000, faker.date.between('2015-01-01', '2021-01-01')]
-  })
+  static heavyQuery2Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [faker.datatype.number(1000) / 1000, faker.date.between('2015-01-01', '2021-01-01')]
+    })
 
   static query1SQL = `
     SELECT *
@@ -43,12 +43,13 @@ class ReadQueries {
     ORDER BY created_at
     LIMIT 100
   `
-  static query1Params = new Array(workload * 400).fill(null).map(() => {
-    return [
-      faker.date.between('2015-01-01', '2021-01-01'),
-      faker.date.between('2015-01-01', '2021-01-01')
-    ]
-  })
+  static query1Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [
+        faker.date.between('2015-01-01', '2021-01-01'),
+        faker.date.between('2015-01-01', '2021-01-01')
+      ]
+    })
 
   static query2SQL = `
     SELECT *
@@ -57,14 +58,15 @@ class ReadQueries {
     ORDER BY created_at
     LIMIT 100
   `
-  static query2Params = new Array(workload * 400).fill(null).map(() => {
-    return [
-      faker.date.between('2015-01-01', '2021-01-01'),
-      faker.date.between('2015-01-01', '2021-01-01'),
-      faker.address.state(),
-      faker.datatype.number()
-    ]
-  })
+  static query2Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [
+        faker.date.between('2015-01-01', '2021-01-01'),
+        faker.date.between('2015-01-01', '2021-01-01'),
+        faker.address.state(),
+        faker.datatype.number()
+      ]
+    })
 
   static query3SQL = `
     SELECT *
@@ -76,12 +78,13 @@ class ReadQueries {
     ORDER BY a.created_at
     LIMIT 100
   `
-  static query3Params = new Array(workload * 400).fill(null).map(() => {
-    return [
-      faker.date.between('2015-01-01', '2021-01-01'),
-      faker.date.between('2015-01-01', '2021-01-01')
-    ]
-  })
+  static query3Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [
+        faker.date.between('2015-01-01', '2021-01-01'),
+        faker.date.between('2015-01-01', '2021-01-01')
+      ]
+    })
 
   static query4SQL = `
     SELECT *
@@ -93,8 +96,9 @@ class ReadQueries {
     ORDER BY c.cost_per_click_usd
     LIMIT 100
   `
-  static query4Params = new Array(workload * 20).fill(null).map(() => {
-    return [faker.date.between('2015-01-01', '2021-01-01'), faker.datatype.number(1000) / 1000]
-  })
+  static query4Params = workload =>
+    new Array(workload).fill(null).map(() => {
+      return [faker.date.between('2015-01-01', '2021-01-01'), faker.datatype.number(1000) / 1000]
+    })
 }
 module.exports = { ReadQueries }

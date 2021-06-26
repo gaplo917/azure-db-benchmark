@@ -2,21 +2,23 @@ require('dotenv').config()
 const faker = require('faker')
 const { Pool } = require('pg')
 const logger = require('pino')()
+const { argv } = require('yargs/yargs')(process.argv.slice(2))
+const { worker: workerCount = 1, concurrency = 2000, maxDbConnection = 50, workload = 50 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
 // reproducible
 faker.seed(1)
 
 const heavyQueryJobs = [
-  [ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params],
-  [ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params]
+  [ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(workload)],
+  [ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(workload)]
 ]
 
 const queryJobs = [
-  [ReadQueries.query1SQL, ReadQueries.query1Params],
-  [ReadQueries.query2SQL, ReadQueries.query2Params],
-  [ReadQueries.query3SQL, ReadQueries.query3Params],
-  [ReadQueries.query4SQL, ReadQueries.query4Params]
+  [ReadQueries.query1SQL, ReadQueries.query1Params(workload * 400)],
+  [ReadQueries.query2SQL, ReadQueries.query2Params(workload * 400)],
+  [ReadQueries.query3SQL, ReadQueries.query3Params(workload * 100)],
+  [ReadQueries.query4SQL, ReadQueries.query4Params(workload * 25)]
 ]
 
 const totalQueryCount =
@@ -46,13 +48,13 @@ async function busyDispatcher(pool, jobs) {
 }
 
 async function query() {
-  const concurrency = Number(process.env.DISPATCH_CONCURRENCY) || 2000
+  const concurrency = Number(concurrency)
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
-    max: Number(process.env.PGMAXCONN) || 50,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 300000,
-    query_timeout: 3000000
+    max: Number(maxDbConnection),
+    idleTimeoutMillis: 30 * 1000,
+    connectionTimeoutMillis: 60 * 1000,
+    query_timeout: 5 * 60 * 1000
   })
   await pool.connect()
   const start = new Date().getTime()

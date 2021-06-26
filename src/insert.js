@@ -316,6 +316,7 @@ if (isMainThread) {
 
     const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
 
+    // report
     const reportProgressInterval = setInterval(() => {
       parentPort.postMessage(
         Message.createProgressMessage({
