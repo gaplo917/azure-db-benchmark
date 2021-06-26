@@ -1,19 +1,11 @@
 const faker = require('faker')
-const path = require('path')
-const fs = require('fs')
-const companyCount = 2000
+const companyCount = 1
 const campaignCount = companyCount * 10
 const adsCount = campaignCount
 const clickCount = adsCount * 10
 const impressionCount = clickCount * 10
-const logger = require('pino')()
-const { argv } = require('yargs/yargs')(process.argv.slice(2))
 
 function generateData(seed) {
-  logger.info({
-    message: 'generating data',
-    seed
-  })
   // reproducible generation
   faker.seed(seed)
 
@@ -60,33 +52,16 @@ function generateData(seed) {
     user_data: faker.datatype.json()
   }))
 
-  const numOfRecords =
-    company.length + campaign.length + ads.length + click.length + impression.length
-
   return {
     company,
     campaign,
     ads,
     click,
-    impression,
-    numOfRecords
+    impression
   }
 }
 
-// write to file
-if (argv.write) {
-  const dataFolder = argv.seed
-  const seedDir = path.resolve(__dirname + '/../data/' + dataFolder)
-  if (!fs.existsSync(seedDir)) {
-    fs.mkdirSync(seedDir)
-  }
-  const { company, campaign, ads, click, impression } = generateData(argv.seed)
-
-  fs.writeFileSync(seedDir + '/company.json', JSON.stringify(company, null))
-  fs.writeFileSync(seedDir + '/campaign.json', JSON.stringify(campaign, null))
-  fs.writeFileSync(seedDir + '/ads.json', JSON.stringify(ads, null))
-  fs.writeFileSync(seedDir + '/click.json', JSON.stringify(click, null))
-  fs.writeFileSync(seedDir + '/impression.json', JSON.stringify(impression, null))
+module.exports = {
+  generateData,
+  numOfRecords: companyCount + campaignCount + adsCount + clickCount + impressionCount
 }
-
-module.exports = { generateData }

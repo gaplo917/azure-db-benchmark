@@ -1,3 +1,7 @@
+const faker = require('faker')
+
+faker.seed(1)
+
 // require table scan
 class ReadQueries {
   static heavyQuery1SQL = `

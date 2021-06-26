@@ -2,7 +2,7 @@ require('dotenv').config()
 const { Pool } = require('pg')
 const logger = require('pino')()
 
-async function ping() {
+;(async function main() {
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING
   })
@@ -17,6 +17,4 @@ async function ping() {
   pool.end()
 
   process.exit(0)
-}
-
-ping()
+})()

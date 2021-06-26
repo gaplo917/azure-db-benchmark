@@ -4,7 +4,7 @@ const path = require('path')
 const fs = require('fs')
 const logger = require('pino')()
 
-async function ping() {
+;(async function main() {
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
     max: process.env.PGMAXCONN,
@@ -32,6 +32,4 @@ async function ping() {
   pool.end()
 
   process.exit(0)
-}
-
-ping()
+})()

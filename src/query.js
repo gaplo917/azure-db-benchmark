@@ -21,13 +21,9 @@ const queryJobs = [
   [ReadQueries.query4SQL, ReadQueries.query4Params(workload * 25)]
 ]
 
+const sumCountReducer = (acc, [_, params]) => acc + params.length
 const totalQueryCount =
-  ReadQueries.heavyQuery1Params.length +
-  ReadQueries.heavyQuery2Params.length +
-  ReadQueries.query1Params.length +
-  ReadQueries.query2Params.length +
-  ReadQueries.query3Params.length +
-  ReadQueries.query4Params.length
+  heavyQueryJobs.reduce(sumCountReducer, 0) + queryJobs.reduce(sumCountReducer, 0)
 
 let queried = 0
 
@@ -47,8 +43,7 @@ async function busyDispatcher(pool, jobs) {
   }
 }
 
-async function query() {
-  const concurrency = Number(concurrency)
+;(async function main() {
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
     max: Number(maxDbConnection),
@@ -87,7 +82,7 @@ async function query() {
     .fill(null)
     .map(() => busyDispatcher(pool, queryJobs))
 
-  await Promise.all([...heavyQueryPs, queryPs])
+  await Promise.all([...heavyQueryPs, ...queryPs])
 
   clearInterval(displayProgressInterval)
 
@@ -101,6 +96,4 @@ async function query() {
   pool.end()
 
   process.exit(0)
-}
-
-query()
+})()

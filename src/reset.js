@@ -6,7 +6,7 @@ const logger = require('pino')()
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
 const { citus } = argv
 
-async function ping() {
+;(async function main() {
   const pool = new Pool({
     connectionString: process.env.PGCONNECTIONSTRING,
     max: process.env.PGMAXCONN,
@@ -44,6 +44,4 @@ async function ping() {
   pool.end()
 
   process.exit(0)
-}
-
-ping()
+})()

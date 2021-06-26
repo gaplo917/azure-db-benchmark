@@ -1,9 +1,15 @@
 require('dotenv').config()
 const logger = require('pino')()
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads')
-const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const { worker: workerCount = 1, concurrency = 2000, maxDbConnection = 50, numOfCopies = 1 } = argv
 const { WriteQueries } = require('./sql/write-queries')
+const { argv } = require('yargs/yargs')(process.argv.slice(2))
+const {
+  worker: workerCount = 4,
+  concurrency = 2000,
+  maxDbConnection = 40,
+  numOfDataSet = 2000
+} = argv
+const DATASET_SIZE_LIMIT = 1000
 
 class Message {
   static INIT = 'INIT'
@@ -23,41 +29,56 @@ class Message {
   }
 }
 
-const divideIntegerFairly = (target, n) => {
-  const a = Math.floor(target / n)
-  return [...new Array(n - 1).fill(a), target - a * (n - 1)]
+const divideWorkFairly = (target, n) => {
+  const a = Math.ceil(target / n)
+  const b = Math.floor(target / n)
+  let count = 0
+  const arr = []
+  for (let i = 0; i < n - 1; i++) {
+    if (i % 2 === 0) {
+      count += a
+      arr.push(a)
+    } else {
+      count += b
+      arr.push(b)
+    }
+  }
+  arr.push(target - count)
+  return arr
 }
 
+const rampUpDelay = ms => new Promise(resolve => setTimeout(resolve, ms))
+const timeElapsedInSecondsFrom = start => Number((new Date().getTime() - start) / 1000).toFixed(2)
+
 if (isMainThread) {
+  const { numOfRecords } = require('./generate-data')
   const workerStats = new Map()
-  function createWorker({ workerId, concurrency, maxDbConnection }) {
-    logger.info({
-      message: 'create new worker',
-      worker: { workerId, concurrency, maxDbConnection }
-    })
+  function runWorker({ workerId, concurrency, maxDbConnection, numOfDataSet }) {
     return new Promise((resolve, reject) => {
+      const workerData = {
+        workerId,
+        concurrency: concurrency,
+        maxDbConnection: maxDbConnection,
+        numOfDataSet
+      }
+      logger.info({
+        message: 'create new worker',
+        workerData
+      })
       const worker = new Worker(__filename, {
-        workerData: {
-          concurrency: concurrency,
-          maxDbConnection: maxDbConnection,
-          numOfCopies
-        }
+        workerData
       })
       worker.on('message', ({ type, payload }) => {
         switch (type) {
           case Message.INIT:
             workerStats.set(workerId, {
               isDone: false,
-              totalInsertCount: Number(payload.totalInsertCount),
               inserted: 0,
               timeElapsedInSeconds: 0
             })
             logger.info({
               message: 'new worker join',
-              workerPayload: payload,
-              totalInsertCount: Array.from(workerStats.values())
-                .map(it => it.totalInsertCount)
-                .reduce((acc, e) => acc + e, 0)
+              workerPayload: payload
             })
             break
           case Message.PROGRESS:
@@ -98,22 +119,16 @@ if (isMainThread) {
     })
   }
 
-  async function reporter() {
+  ;(async function main() {
     let start = new Date().getTime()
 
-    const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
     const aggregateInserted = stats => {
       return stats
         .map(it => it.inserted)
         .reduce((acc, e) => acc + e, 0)
         .toFixed(2)
     }
-    const aggregateTotalInsertCount = stats => {
-      return stats
-        .map(it => it.totalInsertCount)
-        .reduce((acc, e) => acc + e, 0)
-        .toFixed(2)
-    }
+
     const aggregateTotalTimeout = stats => {
       return stats
         .map(it => it.timeout)
@@ -127,11 +142,10 @@ if (isMainThread) {
         .toFixed(2)
     }
     const calcProgress = stats => {
-      return Number(aggregateInserted(stats) / aggregateTotalInsertCount(stats)).toFixed(4)
+      return Number(aggregateInserted(stats) / numOfDataSet / numOfRecords).toFixed(4)
     }
     const calcAvgRate = stats => {
-      const avgTimeUsed = aggregateTimeUsed(stats) / stats.length
-      return Number(aggregateInserted(stats) / avgTimeUsed).toFixed(2)
+      return Number(aggregateInserted(stats) / timeElapsedInSecondsFrom(start)).toFixed(2)
     }
 
     const startScheduledReport = () => {
@@ -151,7 +165,7 @@ if (isMainThread) {
           totalTimeUsed: aggregateTimeUsed(stats),
           progress: calcProgress(stats),
           avgInsertRate: `${calcAvgRate(stats)}/s`,
-          timeElapsedInSeconds: getTimeElapsedInSeconds()
+          timeElapsedInSeconds: timeElapsedInSecondsFrom(start)
         }
         const insertedDiff = data.totalInserted - lastRecord.totalInserted
         const timeElapsedDiff = data.timeElapsedInSeconds - lastRecord.timeElapsedInSeconds
@@ -163,7 +177,7 @@ if (isMainThread) {
           progress: calcProgress(stats),
           currentInsertRate: Number(insertedDiff / timeElapsedDiff).toFixed(2),
           avgInsertRate: `${calcAvgRate(stats)}/s`,
-          timeElapsedInSeconds: getTimeElapsedInSeconds()
+          timeElapsedInSeconds: timeElapsedInSecondsFrom(start)
         })
         lastRecord = {
           totalInserted: data.totalInserted,
@@ -178,17 +192,47 @@ if (isMainThread) {
 
     const stopScheduledReport = startScheduledReport()
 
-    const concurrencyArr = divideIntegerFairly(concurrency, workerCount)
-    const maxDBConnectionArr = divideIntegerFairly(maxDbConnection, workerCount)
-    await Promise.all(
-      new Array(workerCount).fill(null).map((_, index) =>
-        createWorker({
+    const concurrencyArr = divideWorkFairly(concurrency, workerCount)
+    const maxDBConnectionArr = divideWorkFairly(maxDbConnection, workerCount)
+    const numOfDataSetArr = divideWorkFairly(numOfDataSet, workerCount)
+
+    if (numOfDataSetArr.find(it => it > DATASET_SIZE_LIMIT)) {
+      logger.info({
+        message: `data size too large (>${DATASET_SIZE_LIMIT}), going to divide and ramp-up workers`
+      })
+      const jobs = new Array(workerCount).fill(null).map((_, index) => {
+        let dataSetLeft = numOfDataSetArr[index]
+        let dividedCount = 0
+        return (async () => {
+          // 15s ramp up delay to prevent all workers start/finish at the same time for CPU intensive stuffs
+          await rampUpDelay(index * 15 * 1000)
+
+          while (dataSetLeft > 0) {
+            const dataSetSize = dataSetLeft > DATASET_SIZE_LIMIT ? DATASET_SIZE_LIMIT : dataSetLeft
+            await runWorker({
+              workerId: `${index}-${dividedCount}`,
+              concurrency: concurrencyArr[index],
+              maxDbConnection: maxDBConnectionArr[index],
+              numOfDataSet: dataSetSize
+            })
+            dataSetLeft -= dataSetSize
+            dividedCount++
+          }
+        })()
+      })
+
+      await Promise.all(jobs)
+    } else {
+      const jobs = new Array(workerCount).fill(null).map((_, index) =>
+        runWorker({
           workerId: index,
           concurrency: concurrencyArr[index],
-          maxDbConnection: maxDBConnectionArr[index]
+          maxDbConnection: maxDBConnectionArr[index],
+          numOfDataSet: numOfDataSetArr[index]
         })
       )
-    )
+      await Promise.all(jobs)
+    }
 
     stopScheduledReport()
 
@@ -199,26 +243,23 @@ if (isMainThread) {
       totalTimeUsed: aggregateTimeUsed(stats),
       progress: calcProgress(stats),
       avgInsertRate: `${calcAvgRate(stats)}/s`,
-      timeElapsedInSeconds: getTimeElapsedInSeconds()
+      timeElapsedInSeconds: timeElapsedInSecondsFrom(start)
     })
-  }
-
-  // start
-  reporter()
+  })()
 } else {
   const { Pool } = require('pg')
-  const { generateData } = require('./fake-data')
+  const { generateData, numOfRecords } = require('./generate-data')
 
   let inserted = 0
   let timeout = 0
 
   const timeoutHandler = () => timeout++
 
-  const busyDispatcher = async ({ pool, index, numOfCopies, data }) => {
-    const { company, campaign, ads, click, impression } = data
-    const pos0 = index % company.length
+  const busyDispatcher = async ({ pool, index, dataSet }) => {
     // write enough copy
-    for (let writtenCopy = 0; writtenCopy < numOfCopies; writtenCopy++) {
+    while (dataSet.length > 0) {
+      const { company, campaign, ads, click, impression } = dataSet.pop()
+      const pos0 = index % company.length
       const { rows: r0 } = await pool.query(
         WriteQueries.insertCompanySQL,
         WriteQueries.companyToQueryParam(company[pos0])
@@ -290,8 +331,8 @@ if (isMainThread) {
     }
   }
 
-  async function insert() {
-    const { concurrency = 2000, maxDbConnection = 50, numOfCopies = 1 } = workerData
+  ;(async function main() {
+    const { workerId, concurrency = 2000, maxDbConnection = 50, numOfDataSet = 1 } = workerData
     const pool = new Pool({
       connectionString: process.env.PGCONNECTIONSTRING,
       max: maxDbConnection,
@@ -301,20 +342,20 @@ if (isMainThread) {
     })
     await pool.connect()
 
-    // generate all dummy data in memory first
-    const data = generateData(1)
+    // prepare data before any timing
+    const dataSet = new Array(numOfDataSet)
+      .fill(null)
+      .map((_, index) => generateData(`${workerId}-${index}`))
 
     const start = new Date().getTime()
 
     parentPort.postMessage(
       Message.createInitMessage({
-        totalInsertCount: numOfCopies * data.numOfRecords,
+        totalInsertCount: numOfDataSet * numOfRecords,
         concurrency,
         maxDbConnection
       })
     )
-
-    const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
 
     // report
     const reportProgressInterval = setInterval(() => {
@@ -322,15 +363,13 @@ if (isMainThread) {
         Message.createProgressMessage({
           inserted,
           timeout,
-          timeElapsedInSeconds: getTimeElapsedInSeconds()
+          timeElapsedInSeconds: timeElapsedInSecondsFrom(start)
         })
       )
     }, 1000)
 
     await Promise.all(
-      new Array(concurrency)
-        .fill(null)
-        .map((_, index) => busyDispatcher({ pool, index, numOfCopies, data }))
+      new Array(concurrency).fill(null).map((_, index) => busyDispatcher({ pool, index, dataSet }))
     )
 
     clearInterval(reportProgressInterval)
@@ -340,13 +379,12 @@ if (isMainThread) {
       Message.createDoneMessage({
         inserted,
         timeout,
-        timeElapsedInSeconds: getTimeElapsedInSeconds()
+        timeElapsedInSeconds: timeElapsedInSecondsFrom(start)
       })
     )
 
     // release pool before exit
     pool.end()
-  }
-
-  insert()
+    process.exit(0)
+  })()
 }

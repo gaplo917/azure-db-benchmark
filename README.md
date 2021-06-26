@@ -4,8 +4,8 @@ TBD
 
 ### Local development
 ```bash
-# node 12 works, node 14 has some V8 bugs on JSON.stringify big js object on 'yarn data'
-nvm use 12.18.3
+# tested on node 14
+nvm use 14
 
 # init local postgresql
 docker compose -f stack.yml up

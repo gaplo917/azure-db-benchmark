@@ -18,8 +18,8 @@
     "reset": "node src/reset.js",
     "reset-citus": "node src/reset.js --citus",
     "rebalance": "node src/rebalance.js",
-    "data": "node --max-old-space-size=2048 src/fake-data.js --write --seed=1",
-    "insert": "node --max-old-space-size=2048 src/insert.js",
+    "data": "node --max-old-space-size=2048 src/data.js --write --seed=1",
+    "insert": "node --max-old-space-size=4096 src/insert.js",
     "query": "node --max-old-space-size=2048 src/query.js"
   }
 }
