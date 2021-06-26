@@ -3,6 +3,7 @@ const logger = require('pino')()
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads')
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
 const { worker: workerCount = 1, concurrency = 2000, maxDbConnection = 50, numOfCopies = 1 } = argv
+const { WriteQueries } = require('./sql/write-queries')
 
 class Message {
   static INIT = 'INIT'
@@ -81,6 +82,10 @@ if (isMainThread) {
               workerPayload: payload
             })
             break
+          default:
+            logger.warn({
+              message: 'unsupported message type:' + type
+            })
         }
       })
       worker.on('error', reject)
@@ -98,16 +103,28 @@ if (isMainThread) {
 
     const getTimeElapsedInSeconds = () => Number((new Date().getTime() - start) / 1000).toFixed(2)
     const aggregateInserted = stats => {
-      return stats.map(it => it.inserted).reduce((acc, e) => acc + e, 0)
+      return stats
+        .map(it => it.inserted)
+        .reduce((acc, e) => acc + e, 0)
+        .toFixed(2)
     }
     const aggregateTotalInsertCount = stats => {
-      return stats.map(it => it.totalInsertCount).reduce((acc, e) => acc + e, 0)
+      return stats
+        .map(it => it.totalInsertCount)
+        .reduce((acc, e) => acc + e, 0)
+        .toFixed(2)
     }
     const aggregateTotalTimeout = stats => {
-      return stats.map(it => it.timeout).reduce((acc, e) => acc + e, 0)
+      return stats
+        .map(it => it.timeout)
+        .reduce((acc, e) => acc + e, 0)
+        .toFixed(2)
     }
     const aggregateTimeUsed = stats => {
-      return stats.map(it => it.timeElapsedInSeconds).reduce((acc, e) => acc + e, 0)
+      return stats
+        .map(it => it.timeElapsedInSeconds)
+        .reduce((acc, e) => acc + e, 0)
+        .toFixed(2)
     }
     const calcProgress = stats => {
       return Number(aggregateInserted(stats) / aggregateTotalInsertCount(stats)).toFixed(4)
@@ -192,165 +209,6 @@ if (isMainThread) {
   const { Pool } = require('pg')
   const { generateData } = require('./fake-data')
 
-  const insertCompany = `
-    INSERT INTO companies(
-      id,
-      name,
-      image_url,
-      created_at,
-      updated_at
-    ) VALUES (
-      nextval('companies_id_seq'),
-      $1,
-      $2,
-      $3,
-      $4
-    ) RETURNING id;
-  `
-  const companyToQueryParam = company => {
-    return [company.name, company.image_url, company.created_at, company.updated_at]
-  }
-
-  const insertCampaign = `
-    INSERT INTO campaigns(
-      id,
-      company_id,
-      name,
-      cost_model,
-      state,
-      monthly_budget,
-      blacklisted_site_urls,
-      created_at,
-      updated_at
-    ) VALUES (
-      nextval('campaigns_id_seq'),
-      $1,
-      $2,
-      $3,
-      $4,
-      $5,
-      $6,
-      $7,
-      $8
-    ) RETURNING id;
-  `
-  const campaignToQueryParam = ({ companyId, campaign }) => {
-    return [
-      companyId,
-      campaign.name,
-      campaign.cost_model,
-      campaign.state,
-      campaign.monthly_budget,
-      campaign.blacklisted_site_urls,
-      campaign.created_at,
-      campaign.updated_at
-    ]
-  }
-  const insertAd = `
-    INSERT INTO ads(
-      id,
-      company_id,
-      campaign_id,
-      name,
-      image_url,
-      target_url,
-      impressions_count,
-      clicks_count,
-      created_at,
-      updated_at
-    ) VALUES (
-      nextval('ads_id_seq'),
-      $1,
-      $2,
-      $3,
-      $4,
-      $5,
-      $6,
-      $7,
-      $8,
-      $9
-    ) RETURNING id;
-  `
-
-  const adToQueryParam = ({ companyId, campaignId, ad }) => {
-    return [
-      companyId,
-      campaignId,
-      ad.name,
-      ad.image_url,
-      ad.target_url,
-      ad.impressions_count,
-      ad.clicks_count,
-      ad.created_at,
-      ad.updated_at
-    ]
-  }
-  const insertClicks = `
-    INSERT INTO clicks(
-      id,
-      company_id,
-      ad_id,
-      clicked_at,
-      site_url,
-      cost_per_click_usd,
-      user_ip,
-      user_data
-    ) VALUES (
-      nextval('clicks_id_seq'),
-      $1,
-      $2,
-      $3,
-      $4,
-      $5,
-      $6,
-      $7
-    ) RETURNING id;
-  `
-  const clickToQueryParam = ({ companyId, adId, click }) => {
-    return [
-      companyId,
-      adId,
-      click.clicked_at,
-      click.site_url,
-      click.cost_per_click_usd,
-      click.user_ip,
-      click.user_data
-    ]
-  }
-
-  const insertImpression = `
-    INSERT INTO impressions(
-      id,
-      company_id,
-      ad_id,
-      seen_at,
-      site_url,
-      cost_per_impression_usd,
-      user_ip,
-      user_data
-    ) VALUES (
-      nextval('impressions_id_seq'),
-      $1,
-      $2,
-      $3,
-      $4,
-      $5,
-      $6,
-      $7
-    ) RETURNING id;
-  `
-  const impressionToQueryParam = ({ companyId, adId, impression }) => {
-    return [
-      companyId,
-      adId,
-      impression.seen_at,
-      impression.site_url,
-      impression.cost_per_impression_usd,
-      impression.user_ip,
-      impression.user_data
-    ]
-  }
-
   let inserted = 0
   let timeout = 0
 
@@ -361,7 +219,10 @@ if (isMainThread) {
     const pos0 = index % company.length
     // write enough copy
     for (let writtenCopy = 0; writtenCopy < numOfCopies; writtenCopy++) {
-      const { rows: r0 } = await pool.query(insertCompany, companyToQueryParam(company[pos0]))
+      const { rows: r0 } = await pool.query(
+        WriteQueries.insertCompanySQL,
+        WriteQueries.companyToQueryParam(company[pos0])
+      )
       inserted++
       const { id: companyId } = r0[0]
 
@@ -370,7 +231,10 @@ if (isMainThread) {
       for (let i = 0; i < div0; i++) {
         const pos1 = pos0 * div0 + i
         const { rows: r1 } = await pool
-          .query(insertCampaign, campaignToQueryParam({ companyId, campaign: campaign[pos1] }))
+          .query(
+            WriteQueries.insertCampaignSQL,
+            WriteQueries.campaignToQueryParam({ companyId, campaign: campaign[pos1] })
+          )
           .catch(timeoutHandler)
         inserted++
         const { id: campaignId } = r1[0]
@@ -380,7 +244,10 @@ if (isMainThread) {
         for (let j = 0; j < div1; j++) {
           const pos2 = pos1 * div1 + j
           const { rows: r2 } = await pool
-            .query(insertAd, adToQueryParam({ companyId, campaignId, ad: ads[pos2] }))
+            .query(
+              WriteQueries.insertAdSQL,
+              WriteQueries.adToQueryParam({ companyId, campaignId, ad: ads[pos2] })
+            )
             .catch(timeoutHandler)
           inserted++
           const { id: adId } = r2[0]
@@ -391,8 +258,8 @@ if (isMainThread) {
             const pos3 = pos2 * div2 + k
             await pool
               .query(
-                insertClicks,
-                clickToQueryParam({
+                WriteQueries.insertClicksSQL,
+                WriteQueries.clickToQueryParam({
                   companyId,
                   adId,
                   click: click[pos3]
@@ -408,8 +275,8 @@ if (isMainThread) {
             const pos3 = pos2 * div3 + k
             await pool
               .query(
-                insertImpression,
-                impressionToQueryParam({
+                WriteQueries.insertImpressionSQL,
+                WriteQueries.impressionToQueryParam({
                   companyId,
                   adId,
                   impression: impression[pos3]
