@@ -6,8 +6,8 @@ const campaignCount = companyCount * 10
 const adsCount = campaignCount
 const clickCount = adsCount * 10
 const impressionCount = clickCount * 10
-const isWriteToFile = String(process.argv[1]) === 'data'
 const logger = require('pino')()
+const { argv } = require('yargs/yargs')(process.argv.slice(2))
 
 function generateData(seed) {
   logger.info({
@@ -74,15 +74,19 @@ function generateData(seed) {
 }
 
 // write to file
-if (isWriteToFile) {
-  const set1 = path.resolve(__dirname + '/../data/set1')
-  const { company, campaign, ads, click, impression } = generateData(1)
+if (argv.write) {
+  const dataFolder = argv.seed
+  const seedDir = path.resolve(__dirname + '/../data/' + dataFolder)
+  if (!fs.existsSync(seedDir)) {
+    fs.mkdirSync(seedDir)
+  }
+  const { company, campaign, ads, click, impression } = generateData(argv.seed)
 
-  fs.writeFileSync(set1 + '/company.json', JSON.stringify(company, null))
-  fs.writeFileSync(set1 + '/campaign.json', JSON.stringify(campaign, null))
-  fs.writeFileSync(set1 + '/ads.json', JSON.stringify(ads, null))
-  fs.writeFileSync(set1 + '/click.json', JSON.stringify(click, null))
-  fs.writeFileSync(set1 + '/impression.json', JSON.stringify(impression, null))
+  fs.writeFileSync(seedDir + '/company.json', JSON.stringify(company, null))
+  fs.writeFileSync(seedDir + '/campaign.json', JSON.stringify(campaign, null))
+  fs.writeFileSync(seedDir + '/ads.json', JSON.stringify(ads, null))
+  fs.writeFileSync(seedDir + '/click.json', JSON.stringify(click, null))
+  fs.writeFileSync(seedDir + '/impression.json', JSON.stringify(impression, null))
 }
 
 module.exports = { generateData }

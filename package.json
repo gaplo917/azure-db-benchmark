@@ -7,7 +7,8 @@
     "dotenv": "^10.0.0",
     "faker": "^5.5.3",
     "pg": "^8.6.0",
-    "pino": "^6.11.3"
+    "pino": "^6.11.3",
+    "yargs": "^17.0.1"
   },
   "devDependencies": {
     "prettier": "^2.3.1"
@@ -15,10 +16,10 @@
   "scripts": {
     "ping": "node src/ping.js",
     "reset": "node src/reset.js",
-    "reset-citus": "node src/reset.js citus",
+    "reset-citus": "node src/reset.js --citus",
     "rebalance": "node src/rebalance.js",
-    "data": "node --max-old-space-size=4096 src/fake-data.js",
-    "insert": "node --max-old-space-size=4096 src/insert.js",
-    "query": "node --max-old-space-size=4096 src/query.js"
+    "data": "node --max-old-space-size=2048 src/fake-data.js --write --seed=1",
+    "insert": "node --max-old-space-size=2048 src/insert.js",
+    "query": "node --max-old-space-size=2048 src/query.js"
   }
 }

@@ -10,22 +10,11 @@ nvm use 12.18.3
 # init local postgresql
 docker compose -f stack.yml up
 
-# init local database, can use it to init remote database as well
-docker run \
--it \
--e PGPASSWORD=example \
--v $(pwd)/scripts:/app/scripts \
---rm \
-postgres \
-psql \
--h host.docker.internal \
--p 5432 \
--U postgres \
--a \
--f /app/scripts/init.sql
-
 # create .env
 mv .env.local .env
+
+# init local database, can use it to init remote database as well
+yarn reset
 
 # (Optional) pre-generate lots of fake data to preview it
 yarn data
@@ -70,24 +59,9 @@ yarn reset
 # OR if it is a citus powered postgresql
 yarn reset-citus
 
-# benchmark insert, with 1 copy (2.2M records, ~1GB)
-yarn insert 1
+# benchmark insert, with 1 copy (2.2M records, ~800MB)
+yarn insert --worker=1 --concurrency=2000 --maxDbConnection=50 --numOfCopies=1
 
 # benchmark query with base coefficient of workload
-yarn query 50
-```
-
-### Advance Usage
-if you need to run single instance is a bottleneck to benchmark your database, you need to run multiple benchmark instance
-```bash
-npm install -g pm2
-
-# create pm2 config
-mv insert.pm2.config.example.yaml insert.pm2.config.yaml
-
-# start
-pm2 start insert.pm2.config.yaml
-
-# Show logs
-pm2 logs
+yarn query --worker=1 --concurrency=2000 --maxDbConnection=50 --workload=50
 ```

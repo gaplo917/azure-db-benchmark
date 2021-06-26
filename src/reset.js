@@ -3,7 +3,8 @@ const { Pool } = require('pg')
 const path = require('path')
 const fs = require('fs')
 const logger = require('pino')()
-const isCitus = String(process.argv[2]) === 'citus'
+const { argv } = require('yargs/yargs')(process.argv.slice(2))
+const { citus } = argv
 
 async function ping() {
   const pool = new Pool({
@@ -28,7 +29,7 @@ async function ping() {
       })
     )
   )
-  if (isCitus) {
+  if (citus) {
     await pool.query(
       String(
         fs.readFileSync(path.resolve(__dirname + '/../scripts/citus-shard.sql'), {
