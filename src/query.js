@@ -33,7 +33,7 @@ async function busyDispatcher(pool, jobs) {
       connectionString: process.env.PGCONNECTIONSTRING,
       max: Number(maxDbConnection),
       idleTimeoutMillis: 30 * 1000,
-      connectionTimeoutMillis: 60 * 1000,
+      connectionTimeoutMillis: 5 * 60 * 1000,
       query_timeout: 5 * 60 * 1000
     },
     async pool => {
