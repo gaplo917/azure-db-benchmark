@@ -63,7 +63,7 @@ class ReadQueries {
     JOIN ads as a
         ON c.company_id = a.company_id
                AND c.ad_id = a.id
-    WHERE a.created_at > $1 AND a.created_at < $2 AND c.cost_per_click_usd > $2
+    WHERE a.created_at > $1 AND a.created_at < $2
     ORDER BY c.cost_per_click_usd
     LIMIT 100
   `
@@ -71,8 +71,7 @@ class ReadQueries {
     new Array(workload).fill(null).map(() => {
       return [
         faker.date.between('2015-01-01', '2018-01-01'),
-        faker.date.between('2019-01-01', '2021-01-01'),
-        faker.datatype.number(1000) / 1000
+        faker.date.between('2019-01-01', '2021-01-01')
       ]
     })
 
@@ -83,14 +82,13 @@ class ReadQueries {
              JOIN ads as a
                   ON i.company_id = a.company_id
                       AND i.ad_id = a.id
-    WHERE i.cost_per_impression_usd > $1 AND i.seen_at > $2 AND i.seen_at < $3
+    WHERE i.seen_at > $2 AND i.seen_at < $3
     ORDER BY i.seen_at
     LIMIT 100;
   `
   static query4Params = workload =>
     new Array(workload).fill(null).map(() => {
       return [
-        faker.datatype.number(1000) / 1000,
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]
@@ -107,13 +105,16 @@ class ReadQueries {
              JOIN impressions as i
                   ON i.company_id = a.company_id
                       AND i.ad_id = a.id
-    WHERE i.cost_per_impression_usd > $1
+    WHERE a.created_at > $2 AND a.created_at < $3
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `
   static query5Params = workload =>
     new Array(workload).fill(null).map(() => {
-      return [faker.datatype.number(1000) / 1000]
+      return [
+        faker.date.between('2015-01-01', '2018-01-01'),
+        faker.date.between('2019-01-01', '2021-01-01')
+      ]
     })
 }
 module.exports = { ReadQueries }
