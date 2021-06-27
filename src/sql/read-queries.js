@@ -23,14 +23,14 @@ class ReadQueries {
   static query1SQL = `
     SELECT id
     FROM campaigns
-    WHERE company_id = ANY ($1) AND created_at > $2 AND created_at < $3 AND state = $4 AND monthly_budget > $5
+    WHERE company_id = $1 AND created_at > $2 AND created_at < $3 AND state = $4 AND monthly_budget > $5
     ORDER BY created_at
     LIMIT 100
   `
   static query1Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01'),
         faker.address.state(),
@@ -44,14 +44,14 @@ class ReadQueries {
     JOIN campaigns c
         ON c.company_id = a.company_id
                AND c.id = a.campaign_id
-    WHERE c.company_id = ANY ($1) AND a.created_at > $2 AND a.created_at < $3 AND c.state = $4 AND c.monthly_budget > $5
+    WHERE c.company_id = $1 AND a.created_at > $2 AND a.created_at < $3 AND c.state = $4 AND c.monthly_budget > $5
     ORDER BY a.created_at
     LIMIT 100
   `
   static query2Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01'),
         faker.address.state(),
@@ -68,14 +68,14 @@ class ReadQueries {
     JOIN campaigns ca
         ON ca.company_id = a.company_id
             AND ca.id = a.campaign_id
-    WHERE c.company_id = ANY ($1) AND a.created_at > $2 AND a.created_at < $3 AND ca.state = $4 AND ca.monthly_budget > $5
+    WHERE c.company_id = $1 AND a.created_at > $2 AND a.created_at < $3 AND ca.state = $4 AND ca.monthly_budget > $5
     ORDER BY a.created_at
     LIMIT 100;
   `
   static query3Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01'),
         faker.address.state(),
@@ -90,14 +90,14 @@ class ReadQueries {
     JOIN ads as a
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = ANY ($1) AND i.seen_at > $2 AND i.seen_at < $3
+    WHERE a.company_id = $1 AND i.seen_at > $2 AND i.seen_at < $3
     ORDER BY i.seen_at
     LIMIT 100;
   `
   static query4Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]
@@ -122,7 +122,7 @@ class ReadQueries {
   `
   static query5Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
-      return [new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId))]
+      return [faker.datatype.number(maxCompanyId)]
     })
 }
 module.exports = { ReadQueries }
