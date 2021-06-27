@@ -58,20 +58,25 @@ class ReadQueries {
     })
 
   static query3SQL = `
-    SELECT c.id, a.id
+    SELECT c.id, a.id, ca.id
     FROM clicks as c
     JOIN ads as a
         ON c.company_id = a.company_id
-               AND c.ad_id = a.id
-    WHERE a.created_at > $1 AND a.created_at < $2
-    ORDER BY c.cost_per_click_usd
-    LIMIT 100
+            AND c.ad_id = a.id
+    JOIN campaigns ca
+        ON ca.company_id = a.company_id
+            AND ca.id = a.campaign_id
+    WHERE a.created_at > $1 AND a.created_at < $2 AND ca.state = $3 AND ca.monthly_budget > $4
+    ORDER BY a.created_at
+    LIMIT 100;
   `
   static query3Params = workload =>
     new Array(workload).fill(null).map(() => {
       return [
         faker.date.between('2015-01-01', '2018-01-01'),
-        faker.date.between('2019-01-01', '2021-01-01')
+        faker.date.between('2019-01-01', '2021-01-01'),
+        faker.address.state(),
+        faker.datatype.number()
       ]
     })
 
@@ -79,10 +84,10 @@ class ReadQueries {
   static query4SQL = `
     SELECT i.id, a.id
     FROM impressions as i
-             JOIN ads as a
-                  ON i.company_id = a.company_id
-                      AND i.ad_id = a.id
-    WHERE i.seen_at > $2 AND i.seen_at < $3
+    JOIN ads as a
+        ON i.company_id = a.company_id
+            AND i.ad_id = a.id
+    WHERE i.seen_at > $1 AND i.seen_at < $2
     ORDER BY i.seen_at
     LIMIT 100;
   `
@@ -97,15 +102,17 @@ class ReadQueries {
   // require table scan
   static query5SQL = `
     SELECT a.campaign_id,
+           a.id,
            RANK() OVER (
                PARTITION BY a.campaign_id
                ORDER BY a.campaign_id, count(*) desc
-               ), count(*) as n_impressions, a.id
+           ),
+           count(*) as n_impressions
     FROM ads as a
-             JOIN impressions as i
-                  ON i.company_id = a.company_id
-                      AND i.ad_id = a.id
-    WHERE a.created_at > $2 AND a.created_at < $3
+    JOIN impressions as i
+        ON i.company_id = a.company_id
+            AND i.ad_id = a.id
+    WHERE a.created_at > $1 AND a.created_at < $2
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `
