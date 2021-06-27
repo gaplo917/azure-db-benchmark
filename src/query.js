@@ -5,34 +5,18 @@ const { argv } = require('yargs/yargs')(process.argv.slice(2))
 const { concurrency = 2000, maxDbConnection = 50, numOfQuerySet = 5000, intensity = 0 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
-const heavyQueryJobs = [[ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(numOfQuerySet)]]
+const jobMap = new Map([
+  // support multiple jobs structures
+  [0, [[ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)]]],
+  [1, [[ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)]]],
+  [2, [[ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)]]],
+  [3, [[ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]]],
+  [4, [[ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(numOfQuerySet)]]],
+  [5, [[ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(numOfQuerySet)]]]
+])
 
-const mediumQueryJobs = [[ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(numOfQuerySet)]]
-
-const queryJobs = [
-  [ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)],
-  [ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)],
-  [ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)],
-  [ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]
-]
-
-const sumCountReducer = (acc, [_, params]) => acc + params.length
-
-const jobsSelection = intensity => {
-  switch (intensity) {
-    case 0:
-    case '0':
-      return queryJobs
-    case 1:
-    case '1':
-      return mediumQueryJobs
-    case 2:
-    case '2':
-      return heavyQueryJobs
-  }
-}
-const targetJob = jobsSelection(intensity)
-const totalQueryCount = targetJob.reduce(sumCountReducer, 0)
+const targetJob = jobMap.get(Number(intensity))
+const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
 
 let queried = 0
 let timeout = 0
