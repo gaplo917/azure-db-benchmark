@@ -19,9 +19,7 @@ const targetJob = jobMap.get(Number(query))
 const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
 
 let queried = 0
-let timeout = 0
-
-const timeoutHandler = () => timeout++
+let error = 0
 
 async function busyDispatcher(pool, jobs) {
   let cursor = 0
@@ -34,8 +32,12 @@ async function busyDispatcher(pool, jobs) {
       continue
     }
     const param = paramList.pop()
-    await pool.query(query, param).catch(timeoutHandler)
-    queried++
+    try {
+      await pool.query(query, param)
+      queried++
+    } catch (e) {
+      error++
+    }
   }
 }
 
@@ -64,6 +66,7 @@ async function busyDispatcher(pool, jobs) {
       queried,
       progress: getProgress(),
       queryRate: `${getRate()}/s`,
+      error,
       timeElapsedInSeconds: getTimeElapsedInSeconds()
     })
   }, 1000)
@@ -80,6 +83,7 @@ async function busyDispatcher(pool, jobs) {
     queried,
     progress: getProgress(),
     queryRate: `${getRate()}/s`,
+    error,
     timeElapsedInSeconds: getTimeElapsedInSeconds()
   })
   // release pool before exist
