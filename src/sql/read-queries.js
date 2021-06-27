@@ -116,7 +116,7 @@ class ReadQueries {
     JOIN impressions as i
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = ANY ($1)
+    WHERE a.company_id = $1
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `
