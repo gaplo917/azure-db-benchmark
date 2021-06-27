@@ -76,8 +76,8 @@ yarn query --query=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=1
 && sleep 1m \
 && yarn query --query=3  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q3.txt \
 && sleep 1m \
-&& yarn query --query=4  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q4.txt \
+&& yarn query --query=4  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=400 --randomSeed=10 > output/q4.txt \
 && sleep 1m \
-&& yarn query --query=5  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q5.txt
+&& yarn query --query=5  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=400 --randomSeed=10 > output/q5.txt
 
 ```
