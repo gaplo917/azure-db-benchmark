@@ -69,10 +69,15 @@ yarn insert --worker=8 --concurrency=8000 --maxDbConnection=500 --numOfDataSet=2
 # query={4} medium workload query (all hit index with random parameters but large amount of data join)
 # query={5} heavy workload query (table scan and large amount of data join)
 yarn query --query=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=10 > output/q0.txt \
-&& yarn query --query=1  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=10 > output/q1.txt \
-&& yarn query --query=2  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=10 > output/q2.txt \
-&& yarn query --query=3  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=10 > output/q3.txt \
-&& yarn query --query=4  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=1000 --randomSeed=1 > output/q4.txt \
-&& yarn query --query=5  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=1000 --randomSeed=1 > output/q5.txt
+&& sleep 1m \
+&& yarn query --query=1  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=20000 --randomSeed=10 > output/q1.txt \
+&& sleep 1m \
+&& yarn query --query=2  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=20000 --randomSeed=10 > output/q2.txt \
+&& sleep 1m \
+&& yarn query --query=3  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q3.txt \
+&& sleep 1m \
+&& yarn query --query=4  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q4.txt \
+&& sleep 1m \
+&& yarn query --query=5  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=4000 --randomSeed=10 > output/q5.txt
 
 ```
