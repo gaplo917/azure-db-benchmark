@@ -1,6 +1,8 @@
 const faker = require('faker')
+const { argv } = require('yargs/yargs')(process.argv.slice(2))
+const { randomSeed = 1 } = argv
 
-faker.seed(1)
+faker.seed(randomSeed)
 
 // require table scan
 class ReadQueries {

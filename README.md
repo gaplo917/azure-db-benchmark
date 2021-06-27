@@ -65,16 +65,16 @@ yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4
 # insert reproducible random data with 240000 dataset (269M records, ~75GB), will divide and ramp-up workers internally
 yarn insert --worker=8 --concurrency=8000 --maxDbConnection=500 --numOfDataSet=240000
 
-# 4 light workload weight query(all hit index with random parameters), 25000 numOfQuerySet (100k queries)
-yarn query --intensity=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000
-yarn query --intensity=1  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000
-yarn query --intensity=2  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000
-yarn query --intensity=3  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000
+# 4 light workload weight query(all hit index with random parameters)
+yarn query --intensity=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
+yarn query --intensity=1  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000 --randomSeed=1
+yarn query --intensity=2  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000 --randomSeed=1
+yarn query --intensity=3  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000 --randomSeed=1
 
-# 1 medium workload query (all hit index with random parameters but large amount of data join), 10000 numOfQuerySet (10k queries)
-yarn query --intensity=4  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000
+# 1 medium workload query (all hit index with random parameters but large amount of data join)
+yarn query --intensity=4  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=1
 
-# 1 heavy workload query (table scan and large amount of data join), 50 numOfQuerySet (50 query)
-yarn query --intensity=5 --concurrency=4 --maxDbConnection=250 --numOfQuerySet=50
+# 1 heavy workload query (table scan and large amount of data join)
+yarn query --intensity=5 --concurrency=4 --maxDbConnection=250 --numOfQuerySet=50 --randomSeed=1
 
 ```
