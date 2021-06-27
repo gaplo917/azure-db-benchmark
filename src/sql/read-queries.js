@@ -8,13 +8,13 @@ class ReadQueries {
   static query0SQL = `
     SELECT id
     FROM companies
-    WHERE created_at > $1 AND created_at < $2
+    WHERE id = $1 AND created_at > $1 AND created_at < $2
     ORDER BY created_at
-    LIMIT 100
   `
-  static query0Params = workload =>
+  static query0Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]

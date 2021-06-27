@@ -45,7 +45,7 @@ async function busyDispatcher(pool, jobs) {
 
       const jobMap = new Map([
         // support multiple jobs structures
-        [0, () => [[ReadQueries.query0SQL, ReadQueries.query0Params(randomCount)]]],
+        [0, () => [[ReadQueries.query0SQL, ReadQueries.query0Params(randomCount, Number(count))]]],
         [1, () => [[ReadQueries.query1SQL, ReadQueries.query1Params(randomCount, Number(count))]]],
         [2, () => [[ReadQueries.query2SQL, ReadQueries.query2Params(randomCount, Number(count))]]],
         [3, () => [[ReadQueries.query3SQL, ReadQueries.query3Params(randomCount, Number(count))]]],
