@@ -90,7 +90,7 @@ class ReadQueries {
     JOIN ads as a
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = $1 AND i.seen_at > $2 AND i.seen_at < $3
+    WHERE a.company_id = ANY ($1) AND i.seen_at > $2 AND i.seen_at < $3
     ORDER BY i.seen_at
     LIMIT 100;
   `
@@ -116,7 +116,7 @@ class ReadQueries {
     JOIN impressions as i
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = $1
+    WHERE a.company_id = ANY ($1)
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `

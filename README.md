@@ -74,10 +74,10 @@ yarn query --query=0  --concurrency=2000 --maxDbConnection=250 --period=180 --ra
 && sleep 5s \
 && yarn query --query=2  --concurrency=2000 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q2.txt \
 && sleep 5s \
-&& yarn query --query=3  --concurrency=500 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q3.txt \
+&& yarn query --query=3  --concurrency=2000 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q3.txt \
 && sleep 5s \
-&& yarn query --query=4  --concurrency=200 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q4.txt \
+&& yarn query --query=4  --concurrency=2000 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q4.txt \
 && sleep 5s \
-&& yarn query --query=5  --concurrency=200 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q5.txt
+&& yarn query --query=5  --concurrency=2000 --maxDbConnection=250 --period=180 --randomSeed=10 > output/q5.txt
 
 ```
