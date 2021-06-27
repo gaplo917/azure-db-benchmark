@@ -8,7 +8,7 @@ class ReadQueries {
   static query0SQL = `
     SELECT id
     FROM companies
-    WHERE id = $1 AND created_at > $1 AND created_at < $2
+    WHERE id = $1 AND created_at > $2 AND created_at < $3
     ORDER BY created_at
   `
   static query0Params = (workload, maxCompanyId) =>
