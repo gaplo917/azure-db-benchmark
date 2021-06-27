@@ -59,9 +59,19 @@ yarn reset
 # OR if it is a citus powered postgresql
 yarn reset-citus
 
-# benchmark insert, with 1 copy (2.2M records, ~800MB)
+# insert reproducible random data with 4000 dataset (2.2M records, ~1.2GB)
 yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4000
 
-# benchmark query with base coefficient of workload
-yarn query --worker=1 --concurrency=2000 --maxDbConnection=50 --workload=50
+# insert reproducible random data with 240000 dataset (269M records, ~75GB), will divide and ramp-up workers internally
+yarn insert --worker=8 --concurrency=8000 --maxDbConnection=500 --numOfDataSet=240000
+
+# 4 light workload weight query(all hit index with random parameters), 25000 numOfQuerySet (100k queries)
+yarn query --intensity=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=25000
+
+# 1 medium workload query (all hit index with random parameters but large amount of data join), 10000 numOfQuerySet (10k queries)
+yarn query --intensity=1  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000
+
+# 1 heavy workload query (table scan and large amount of data join), 50 numOfQuerySet (50 query)
+yarn query --intensity=2 --concurrency=4 --maxDbConnection=250 --numOfQuerySet=50
+
 ```

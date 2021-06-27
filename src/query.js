@@ -2,30 +2,37 @@ require('dotenv').config()
 const { Pool } = require('pg')
 const logger = require('pino')()
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const {
-  worker: workerCount = 1,
-  concurrency = 2000,
-  maxDbConnection = 50,
-  workload = 50,
-  heavy = 0
-} = argv
+const { concurrency = 2000, maxDbConnection = 50, numOfQuerySet = 5000, intensity = 0 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
-const heavyQueryJobs = [
-  [ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(workload)],
-  [ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(workload)]
+const heavyQueryJobs = [[ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(numOfQuerySet)]]
+
+const mediumQueryJobs = [[ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(numOfQuerySet)]]
+
+const queryJobs = [
+  [ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)],
+  [ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)],
+  [ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)],
+  [ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]
 ]
 
-const queryJobs = new Array(50).fill(null).flatMap(() => [
-  [ReadQueries.query1SQL, ReadQueries.query1Params(workload)],
-  [ReadQueries.query2SQL, ReadQueries.query2Params(workload)],
-  [ReadQueries.query3SQL, ReadQueries.query3Params(workload)],
-  [ReadQueries.query4SQL, ReadQueries.query4Params(workload)]
-])
-
 const sumCountReducer = (acc, [_, params]) => acc + params.length
-const totalQueryCount =
-  heavyQueryJobs.reduce(sumCountReducer, 0) + queryJobs.reduce(sumCountReducer, 0)
+
+const jobsSelection = intensity => {
+  switch (intensity) {
+    case 0:
+    case '0':
+      return queryJobs
+    case 1:
+    case '1':
+      return mediumQueryJobs
+    case 2:
+    case '2':
+      return heavyQueryJobs
+  }
+}
+const targetJob = jobsSelection(intensity)
+const totalQueryCount = targetJob.reduce(sumCountReducer, 0)
 
 let queried = 0
 let timeout = 0
@@ -79,7 +86,7 @@ async function busyDispatcher(pool, jobs) {
 
   const queryPs = new Array(Math.max(concurrency, 1))
     .fill(null)
-    .map(() => busyDispatcher(pool, heavy ? heavyQueryJobs : queryJobs))
+    .map(() => busyDispatcher(pool, targetJob))
 
   await Promise.all(queryPs)
 
