@@ -75,6 +75,6 @@ yarn query --query=3  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=1
 yarn query --query=4  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=1000 --randomSeed=1
 
 # 1 heavy workload query (table scan and large amount of data join)
-yarn query --query=5 --concurrency=1 --maxDbConnection=250 --numOfQuerySet=4 --randomSeed=1
+yarn query --query=5  --concurrency=100 --maxDbConnection=250 --numOfQuerySet=1000 --randomSeed=1
 
 ```
