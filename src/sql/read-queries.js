@@ -97,7 +97,7 @@ class ReadQueries {
   static query4Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        faker.datatype.number(maxCompanyId),
+        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]
@@ -122,7 +122,7 @@ class ReadQueries {
   `
   static query5Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
-      return [faker.datatype.number(maxCompanyId)]
+      return [new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId))]
     })
 }
 module.exports = { ReadQueries }
