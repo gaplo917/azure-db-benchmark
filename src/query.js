@@ -2,7 +2,7 @@ require('dotenv').config()
 const { Pool } = require('pg')
 const logger = require('pino')()
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const { concurrency = 2000, maxDbConnection = 50, numOfQuerySet = 5000, intensity = 0 } = argv
+const { concurrency = 2000, maxDbConnection = 50, numOfQuerySet = 5000, query = 0 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
 const jobMap = new Map([
@@ -15,7 +15,7 @@ const jobMap = new Map([
   [5, [[ReadQueries.query5SQL, ReadQueries.query5Params(numOfQuerySet)]]]
 ])
 
-const targetJob = jobMap.get(Number(intensity))
+const targetJob = jobMap.get(Number(query))
 const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
 
 let queried = 0
