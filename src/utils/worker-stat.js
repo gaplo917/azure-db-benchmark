@@ -21,9 +21,8 @@ const calcProgress = ({ stats, totalRecords }) => {
   return Number(aggregateProcessed(stats) / totalRecords).toFixed(4)
 }
 const calcAvgRate = stats => {
-  const minStartAt = stats.map(it => it.startedAt).reduce((acc, e) => Math.min(acc, e), 0)
-  const maxEndAt =
-    stats.map(it => it.endedAt).reduce((acc, e) => Math.max(acc, e), 0) || new Date().getTime()
+  const minStartAt = stats.map(it => it.startedAt).sort((a, b) => a - b)[0]
+  const maxEndAt = stats.map(it => it.endedAt).sort((a, b) => b - a)[0]
   return Number((aggregateProcessed(stats) / (maxEndAt - minStartAt)) * 1000).toFixed(2)
 }
 
