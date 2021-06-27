@@ -19,7 +19,6 @@ class ReadQueries {
     WHERE i.cost_per_impression_usd > $1
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
-    LIMIT 100;
   `
   static heavyQuery1Params = workload =>
     new Array(workload).fill(null).map(() => {
@@ -52,8 +51,8 @@ class ReadQueries {
   static query1Params = workload =>
     new Array(workload).fill(null).map(() => {
       return [
-        faker.date.between('2015-01-01', '2021-01-01'),
-        faker.date.between('2015-01-01', '2021-01-01')
+        faker.date.between('2015-01-01', '2018-01-01'),
+        faker.date.between('2019-01-01', '2021-01-01')
       ]
     })
 
@@ -67,8 +66,8 @@ class ReadQueries {
   static query2Params = workload =>
     new Array(workload).fill(null).map(() => {
       return [
-        faker.date.between('2015-01-01', '2021-01-01'),
-        faker.date.between('2015-01-01', '2021-01-01'),
+        faker.date.between('2015-01-01', '2018-01-01'),
+        faker.date.between('2019-01-01', '2021-01-01'),
         faker.address.state(),
         faker.datatype.number()
       ]
@@ -87,8 +86,8 @@ class ReadQueries {
   static query3Params = workload =>
     new Array(workload).fill(null).map(() => {
       return [
-        faker.date.between('2015-01-01', '2021-01-01'),
-        faker.date.between('2015-01-01', '2021-01-01')
+        faker.date.between('2015-01-01', '2018-01-01'),
+        faker.date.between('2019-01-01', '2021-01-01')
       ]
     })
 
