@@ -2,7 +2,13 @@ require('dotenv').config()
 const { Pool } = require('pg')
 const logger = require('pino')()
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const { worker: workerCount = 1, concurrency = 2000, maxDbConnection = 50, workload = 50 } = argv
+const {
+  worker: workerCount = 1,
+  concurrency = 2000,
+  maxDbConnection = 50,
+  workload = 50,
+  heavy = 0
+} = argv
 const { ReadQueries } = require('./sql/read-queries')
 
 const heavyQueryJobs = [
@@ -22,6 +28,9 @@ const totalQueryCount =
   heavyQueryJobs.reduce(sumCountReducer, 0) + queryJobs.reduce(sumCountReducer, 0)
 
 let queried = 0
+let timeout = 0
+
+const timeoutHandler = () => timeout++
 
 async function busyDispatcher(pool, jobs) {
   let cursor = 0
@@ -34,7 +43,7 @@ async function busyDispatcher(pool, jobs) {
       continue
     }
     const param = paramList.pop()
-    await pool.query(query, param)
+    await pool.query(query, param).catch(timeoutHandler)
     queried++
   }
 }
@@ -68,17 +77,11 @@ async function busyDispatcher(pool, jobs) {
     })
   }, 1000)
 
-  // 1% dispatchers are heavy
-  const numOfHeavyDispatcher = Math.max(Math.floor(concurrency * 0.01), 1)
-  const heavyQueryPs = new Array(numOfHeavyDispatcher)
+  const queryPs = new Array(Math.max(concurrency, 1))
     .fill(null)
-    .map(() => busyDispatcher(pool, heavyQueryJobs))
+    .map(() => busyDispatcher(pool, heavy ? heavyQueryJobs : queryJobs))
 
-  const queryPs = new Array(Math.max(concurrency - numOfHeavyDispatcher, 1))
-    .fill(null)
-    .map(() => busyDispatcher(pool, queryJobs))
-
-  await Promise.all([...heavyQueryPs, ...queryPs])
+  await Promise.all(queryPs)
 
   clearInterval(displayProgressInterval)
 

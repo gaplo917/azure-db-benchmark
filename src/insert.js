@@ -147,10 +147,9 @@ if (isMainThread) {
     while (dataSet.length > 0) {
       const { company, campaign, ads, click, impression } = dataSet.pop()
       const pos0 = index % company.length
-      const { rows: r0 } = await pool.query(
-        WriteQueries.insertCompanySQL,
-        WriteQueries.companyToQueryParam(company[pos0])
-      )
+      const { rows: r0 } = await pool
+        .query(WriteQueries.insertCompanySQL, WriteQueries.companyToQueryParam(company[pos0]))
+        .catch(timeoutHandler)
       processed++
       const { id: companyId } = r0[0]
 
