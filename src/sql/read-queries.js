@@ -116,13 +116,17 @@ class ReadQueries {
     JOIN impressions as i
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = $1
+    WHERE a.company_id = $1 AND i.seen_at > $2 AND i.seen_at < $3
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `
   static query5Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
-      return [faker.datatype.number(maxCompanyId)]
+      return [
+        faker.datatype.number(maxCompanyId),
+        faker.date.between('2015-01-01', '2018-01-01'),
+        faker.date.between('2019-01-01', '2021-01-01')
+      ]
     })
 }
 module.exports = { ReadQueries }
