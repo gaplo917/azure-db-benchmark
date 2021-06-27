@@ -26,7 +26,7 @@ class ReadQueries {
 
   // large amount of data, but no need table scan
   static heavyQuery2SQL = `
-    SELECT i.*, a.name, a.target_url
+    SELECT i.id, a.id
     FROM impressions as i
            JOIN ads as a
                 ON i.company_id = a.company_id
@@ -41,7 +41,7 @@ class ReadQueries {
     })
 
   static query1SQL = `
-    SELECT *
+    SELECT id
     FROM companies
     WHERE created_at > $1 AND created_at < $2
     ORDER BY created_at
@@ -56,7 +56,7 @@ class ReadQueries {
     })
 
   static query2SQL = `
-    SELECT *
+    SELECT id
     FROM campaigns
     WHERE created_at > $1 AND created_at < $2 AND state = $3  AND monthly_budget > $4
     ORDER BY created_at
@@ -73,7 +73,7 @@ class ReadQueries {
     })
 
   static query3SQL = `
-    SELECT *
+    SELECT c.id, a.id
     FROM ads as a
     JOIN campaigns c
         ON c.company_id = a.company_id
@@ -91,7 +91,7 @@ class ReadQueries {
     })
 
   static query4SQL = `
-    SELECT *
+    SELECT c.id, a.id
     FROM clicks as c
     JOIN ads as a
         ON c.company_id = a.company_id
