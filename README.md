@@ -66,15 +66,15 @@ yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4
 yarn insert --worker=8 --concurrency=8000 --maxDbConnection=500 --numOfDataSet=240000
 
 # 4 light workload weight query(all hit index with random parameters)
-yarn query --intensity=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
-yarn query --intensity=1  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
-yarn query --intensity=2  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
-yarn query --intensity=3  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
+yarn query --query=0  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
+yarn query --query=1  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
+yarn query --query=2  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
+yarn query --query=3  --concurrency=2000 --maxDbConnection=250 --numOfQuerySet=100000 --randomSeed=1
 
 # 1 medium workload query (all hit index with random parameters but large amount of data join)
-yarn query --intensity=4  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=1
+yarn query --query=4  --concurrency=1000 --maxDbConnection=250 --numOfQuerySet=10000 --randomSeed=1
 
 # 1 heavy workload query (table scan and large amount of data join)
-yarn query --intensity=5 --concurrency=4 --maxDbConnection=250 --numOfQuerySet=50 --randomSeed=1
+yarn query --query=5 --concurrency=4 --maxDbConnection=250 --numOfQuerySet=50 --randomSeed=1
 
 ```

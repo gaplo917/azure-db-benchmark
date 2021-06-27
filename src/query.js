@@ -7,12 +7,12 @@ const { ReadQueries } = require('./sql/read-queries')
 
 const jobMap = new Map([
   // support multiple jobs structures
-  [0, [[ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)]]],
-  [1, [[ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)]]],
-  [2, [[ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)]]],
-  [3, [[ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]]],
-  [4, [[ReadQueries.heavyQuery1SQL, ReadQueries.heavyQuery1Params(numOfQuerySet)]]],
-  [5, [[ReadQueries.heavyQuery2SQL, ReadQueries.heavyQuery2Params(numOfQuerySet)]]]
+  [0, [[ReadQueries.query0SQL, ReadQueries.query0Params(numOfQuerySet)]]],
+  [1, [[ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)]]],
+  [2, [[ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)]]],
+  [3, [[ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)]]],
+  [4, [[ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]]],
+  [5, [[ReadQueries.query5SQL, ReadQueries.query5Params(numOfQuerySet)]]]
 ])
 
 const targetJob = jobMap.get(Number(intensity))
