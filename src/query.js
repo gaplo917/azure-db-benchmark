@@ -5,21 +5,6 @@ const { argv } = require('yargs/yargs')(process.argv.slice(2))
 const { concurrency = 2000, maxDbConnection = 50, numOfQuerySet = 5000, query = 0 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
-const jobMap = new Map([
-  // support multiple jobs structures
-  [0, () => [[ReadQueries.query0SQL, ReadQueries.query0Params(numOfQuerySet)]]],
-  [1, () => [[ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet)]]],
-  [2, () => [[ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet)]]],
-  [3, () => [[ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet)]]],
-  [4, () => [[ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet)]]],
-  [5, () => [[ReadQueries.query5SQL, ReadQueries.query5Params(numOfQuerySet)]]]
-])
-
-// create target job
-const targetJob = jobMap.get(Number(query))()
-
-const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
-
 let queried = 0
 let error = 0
 
@@ -38,6 +23,7 @@ async function busyDispatcher(pool, jobs) {
       await pool.query(query, param)
       queried++
     } catch (e) {
+      console.error(e)
       error++
     }
   }
@@ -52,6 +38,28 @@ async function busyDispatcher(pool, jobs) {
     query_timeout: 5 * 60 * 1000
   })
   await pool.connect()
+
+  const { rows } = await pool.query(`SELECT count(*) FROM companies`)
+  const { count } = rows[0]
+  logger.info({
+    message: `total ${count} companies`
+  })
+
+  const jobMap = new Map([
+    // support multiple jobs structures
+    [0, () => [[ReadQueries.query0SQL, ReadQueries.query0Params(numOfQuerySet)]]],
+    [1, () => [[ReadQueries.query1SQL, ReadQueries.query1Params(numOfQuerySet, Number(count))]]],
+    [2, () => [[ReadQueries.query2SQL, ReadQueries.query2Params(numOfQuerySet, Number(count))]]],
+    [3, () => [[ReadQueries.query3SQL, ReadQueries.query3Params(numOfQuerySet, Number(count))]]],
+    [4, () => [[ReadQueries.query4SQL, ReadQueries.query4Params(numOfQuerySet, Number(count))]]],
+    [5, () => [[ReadQueries.query5SQL, ReadQueries.query5Params(numOfQuerySet, Number(count))]]]
+  ])
+
+  // create target job
+  const targetJob = jobMap.get(Number(query))()
+
+  const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
+
   const start = new Date().getTime()
   logger.info({
     queried,
