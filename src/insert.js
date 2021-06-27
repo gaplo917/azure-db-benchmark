@@ -1,3 +1,4 @@
+const { runBenchmark } = require('./run-benchmark')
 const { startReportProgress } = require('./utils/start-report-progress')
 require('dotenv').config()
 const logger = require('pino')()
@@ -134,7 +135,6 @@ if (isMainThread) {
     stopReportProgress()
   })()
 } else {
-  const { Pool } = require('pg')
   const { generateData, numOfRecords } = require('./generate-data')
 
   let processed = 0
@@ -219,58 +219,58 @@ if (isMainThread) {
 
   ;(async function main() {
     const { workerId, concurrency = 2000, maxDbConnection = 50, numOfDataSet = 1 } = workerData
-    const pool = new Pool({
-      connectionString: process.env.PGCONNECTIONSTRING,
-      max: maxDbConnection,
-      idleTimeoutMillis: 30 * 1000,
-      connectionTimeoutMillis: 60 * 1000,
-      query_timeout: 5 * 60 * 1000
-    })
-    await pool.connect()
+    await runBenchmark(
+      {
+        connectionString: process.env.PGCONNECTIONSTRING,
+        max: maxDbConnection,
+        idleTimeoutMillis: 30 * 1000,
+        connectionTimeoutMillis: 60 * 1000,
+        query_timeout: 5 * 60 * 1000
+      },
+      async pool => {
+        // prepare data before any timing
+        const dataSet = new Array(numOfDataSet)
+          .fill(null)
+          .map((_, index) => generateData(`${workerId}-${index}`))
 
-    // prepare data before any timing
-    const dataSet = new Array(numOfDataSet)
-      .fill(null)
-      .map((_, index) => generateData(`${workerId}-${index}`))
+        const start = new Date().getTime()
 
-    const start = new Date().getTime()
+        parentPort.postMessage(
+          Message.createInitMessage({
+            totalRecordCount: numOfDataSet * numOfRecords,
+            concurrency,
+            maxDbConnection
+          })
+        )
 
-    parentPort.postMessage(
-      Message.createInitMessage({
-        totalRecordCount: numOfDataSet * numOfRecords,
-        concurrency,
-        maxDbConnection
-      })
+        // report
+        const reportProgressInterval = setInterval(() => {
+          parentPort.postMessage(
+            Message.createProgressMessage({
+              processed,
+              timeout,
+              timeElapsedInSeconds: timeElapsedInSecondsSince(start)
+            })
+          )
+        }, 1000)
+
+        await Promise.all(
+          new Array(concurrency)
+            .fill(null)
+            .map((_, index) => busyDispatcher({ pool, index, dataSet }))
+        )
+
+        clearInterval(reportProgressInterval)
+
+        // report the last status
+        parentPort.postMessage(
+          Message.createDoneMessage({
+            processed,
+            timeout,
+            timeElapsedInSeconds: timeElapsedInSecondsSince(start)
+          })
+        )
+      }
     )
-
-    // report
-    const reportProgressInterval = setInterval(() => {
-      parentPort.postMessage(
-        Message.createProgressMessage({
-          processed,
-          timeout,
-          timeElapsedInSeconds: timeElapsedInSecondsSince(start)
-        })
-      )
-    }, 1000)
-
-    await Promise.all(
-      new Array(concurrency).fill(null).map((_, index) => busyDispatcher({ pool, index, dataSet }))
-    )
-
-    clearInterval(reportProgressInterval)
-
-    // report the last status
-    parentPort.postMessage(
-      Message.createDoneMessage({
-        processed,
-        timeout,
-        timeElapsedInSeconds: timeElapsedInSecondsSince(start)
-      })
-    )
-
-    // release pool before exit
-    pool.end()
-    process.exit(0)
   })()
 }
