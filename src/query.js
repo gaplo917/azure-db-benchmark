@@ -39,6 +39,14 @@ async function busyDispatcher(pool, jobs) {
   })
   await pool.connect()
 
+  // release pool on quit
+  ;['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(signal =>
+    process.on(signal, () => {
+      pool.end()
+      process.exit(0)
+    })
+  )
+
   const { rows } = await pool.query(`SELECT count(*) FROM companies`)
   const { count } = rows[0]
   logger.info({
@@ -96,7 +104,7 @@ async function busyDispatcher(pool, jobs) {
     error,
     timeElapsedInSeconds: getTimeElapsedInSeconds()
   })
-  // release pool before exist
+  // release pool before exit
   pool.end()
 
   process.exit(0)
