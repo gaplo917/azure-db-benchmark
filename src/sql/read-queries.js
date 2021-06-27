@@ -68,7 +68,7 @@ class ReadQueries {
     JOIN campaigns ca
         ON ca.company_id = a.company_id
             AND ca.id = a.campaign_id
-    WHERE c.company_id = ANY ($1) AND a.created_at > $1 AND a.created_at < $2 AND ca.state = $3 AND ca.monthly_budget > $4
+    WHERE c.company_id = ANY ($1) AND a.created_at > $2 AND a.created_at < $3 AND ca.state = $4 AND ca.monthly_budget > $5
     ORDER BY a.created_at
     LIMIT 100;
   `
@@ -90,14 +90,14 @@ class ReadQueries {
     JOIN ads as a
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = ANY ($1) AND i.seen_at > $2 AND i.seen_at < $3
+    WHERE a.company_id = $1 AND i.seen_at > $2 AND i.seen_at < $3
     ORDER BY i.seen_at
     LIMIT 100;
   `
   static query4Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]
@@ -116,14 +116,14 @@ class ReadQueries {
     JOIN impressions as i
         ON i.company_id = a.company_id
             AND i.ad_id = a.id
-    WHERE a.company_id = ANY ($1) AND a.created_at > $2 AND a.created_at < $3
+    WHERE a.company_id = $1 AND a.created_at > $2 AND a.created_at < $3
     GROUP BY a.campaign_id, a.id
     ORDER BY a.campaign_id, n_impressions desc
   `
   static query5Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
       return [
-        new Array(20).fill(null).map(() => faker.datatype.number(maxCompanyId)),
+        faker.datatype.number(maxCompanyId),
         faker.date.between('2015-01-01', '2018-01-01'),
         faker.date.between('2019-01-01', '2021-01-01')
       ]
