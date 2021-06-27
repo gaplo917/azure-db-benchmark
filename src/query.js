@@ -6,7 +6,7 @@ const { argv } = require('yargs/yargs')(process.argv.slice(2))
 const { concurrency = 2000, maxDbConnection = 50, period = 60, query = 0 } = argv
 const { ReadQueries } = require('./sql/read-queries')
 
-const randomCount = 100_000
+const randomCount = 3_000_000
 let queried = 0
 let error = 0
 let finished = false
@@ -56,13 +56,10 @@ async function busyDispatcher(pool, jobs) {
       // create target job
       const targetJob = jobMap.get(Number(query))()
 
-      const totalQueryCount = targetJob.reduce((acc, [_, params]) => acc + params.length, 0)
-
       const start = new Date().getTime()
       logger.info({
         queried,
         progress: 0,
-        totalQueryCount,
         queryRate: 0,
         timeElapsedInSeconds: 0
       })
