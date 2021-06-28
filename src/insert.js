@@ -16,9 +16,8 @@ if (isMainThread) {
   const workerStats = new Map()
 
   ;(async function main() {
+    let unregisterReportProgress = null
     const totalRecords = numOfDataSet * numOfRecords
-
-    const stopReportProgress = startReportProgress({ workerStats, totalRecords })
 
     const concurrencyArr = divideWorkFairly(concurrency, workerCount)
     const maxDBConnectionArr = divideWorkFairly(maxDbConnection, workerCount)
@@ -37,14 +36,21 @@ if (isMainThread) {
 
           while (dataSetLeft > 0) {
             const dataSetSize = dataSetLeft > DATASET_SIZE_LIMIT ? DATASET_SIZE_LIMIT : dataSetLeft
-            await runWorker({
-              workerFilename: __filename,
-              workerStats,
-              workerId: `${index}-${dividedCount}`,
-              concurrency: concurrencyArr[index],
-              maxDbConnection: maxDBConnectionArr[index],
-              numOfDataSet: dataSetSize
-            })
+            await runWorker(
+              {
+                workerFilename: __filename,
+                workerStats,
+                workerId: `${index}-${dividedCount}`,
+                concurrency: concurrencyArr[index],
+                maxDbConnection: maxDBConnectionArr[index],
+                numOfDataSet: dataSetSize
+              },
+              () => {
+                if (unregisterReportProgress === null) {
+                  unregisterReportProgress = startReportProgress({ workerStats, totalRecords })
+                }
+              }
+            )
             dataSetLeft -= dataSetSize
             dividedCount++
           }
@@ -54,19 +60,28 @@ if (isMainThread) {
       await Promise.all(jobs)
     } else {
       const jobs = new Array(workerCount).fill(null).map((_, index) =>
-        runWorker({
-          workerFilename: __filename,
-          workerStats,
-          workerId: index,
-          concurrency: concurrencyArr[index],
-          maxDbConnection: maxDBConnectionArr[index],
-          numOfDataSet: numOfDataSetArr[index]
-        })
+        runWorker(
+          {
+            workerFilename: __filename,
+            workerStats,
+            workerId: index,
+            concurrency: concurrencyArr[index],
+            maxDbConnection: maxDBConnectionArr[index],
+            numOfDataSet: numOfDataSetArr[index]
+          },
+          () => {
+            if (unregisterReportProgress === null) {
+              unregisterReportProgress = startReportProgress({ workerStats, totalRecords })
+            }
+          }
+        )
       )
       await Promise.all(jobs)
     }
 
-    stopReportProgress()
+    if (unregisterReportProgress) {
+      unregisterReportProgress()
+    }
   })()
 } else {
   const { generateData, numOfRecords } = require('./generate-data')

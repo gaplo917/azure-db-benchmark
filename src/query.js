@@ -13,7 +13,7 @@ if (isMainThread) {
   const workerStats = new Map()
 
   ;(async function main() {
-    const stopReportProgress = startReportProgress({ workerStats, period })
+    let unregisterReportProgress = null
     const concurrencyArr = divideWorkFairly(concurrency, workerCount)
     const maxDBConnectionArr = divideWorkFairly(maxDbConnection, workerCount)
 
@@ -25,11 +25,17 @@ if (isMainThread) {
         concurrency: concurrencyArr[index],
         maxDbConnection: maxDBConnectionArr[index],
         period
+      }, () => {
+        if(unregisterReportProgress === null) {
+          unregisterReportProgress = startReportProgress({ workerStats, period })
+        }
       })
     )
     await Promise.all(jobs)
 
-    stopReportProgress()
+    if(unregisterReportProgress) {
+      unregisterReportProgress()
+    }
   })()
 } else {
   // large enough to prevent query cache

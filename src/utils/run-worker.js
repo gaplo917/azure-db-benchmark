@@ -2,7 +2,7 @@ const { Worker } = require('worker_threads')
 const logger = require('pino')()
 const { Message } = require('./utils')
 
-function runWorker(workerData) {
+function runWorker(workerData, onWorkerInit) {
   const { workerFilename, workerStats, workerId } = workerData
   return new Promise((resolve, reject) => {
     logger.info({
@@ -25,6 +25,7 @@ function runWorker(workerData) {
             message: 'new worker join',
             workerPayload: payload
           })
+          onWorkerInit && onWorkerInit(worker)
           break
         case Message.PROGRESS:
           workerStats.set(workerId, {
