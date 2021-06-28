@@ -18,22 +18,26 @@ if (isMainThread) {
     const maxDBConnectionArr = divideWorkFairly(maxDbConnection, workerCount)
 
     const jobs = new Array(workerCount).fill(null).map((_, index) =>
-      runWorker({
-        workerFilename: __filename,
-        workerStats,
-        workerId: index,
-        concurrency: concurrencyArr[index],
-        maxDbConnection: maxDBConnectionArr[index],
-        period
-      }, () => {
-        if(unregisterReportProgress === null) {
-          unregisterReportProgress = startReportProgress({ workerStats, period })
+      runWorker(
+        {
+          workerFilename: __filename,
+          workerStats,
+          workerId: index,
+          concurrency: concurrencyArr[index],
+          maxDbConnection: maxDBConnectionArr[index],
+          period,
+          query
+        },
+        () => {
+          if (unregisterReportProgress === null) {
+            unregisterReportProgress = startReportProgress({ workerStats, period })
+          }
         }
-      })
+      )
     )
     await Promise.all(jobs)
 
-    if(unregisterReportProgress) {
+    if (unregisterReportProgress) {
       unregisterReportProgress()
     }
   })()
@@ -61,7 +65,7 @@ if (isMainThread) {
   }
 
   ;(async function main() {
-    const { workerId, concurrency = 2000, maxDbConnection = 50, period = 30 } = workerData
+    const { workerId, concurrency = 2000, maxDbConnection = 50, period = 30, query } = workerData
 
     await runBenchmark(
       {
