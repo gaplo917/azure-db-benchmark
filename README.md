@@ -74,10 +74,10 @@ yarn query --query=0 --worker=4 --concurrency=8000 --maxDbConnection=250 --perio
 && sleep 5s \
 && yarn query --query=2 --worker=4 --concurrency=8000 --maxDbConnection=250 --period=180 > output/q2.txt \
 && sleep 5s \
-&& yarn query --query=3 --worker=4 --concurrency=2000 --maxDbConnection=250 --period=180 > output/q3.txt \
+&& yarn query --query=3 --worker=4 --concurrency=4000 --maxDbConnection=250 --period=180 > output/q3.txt \
 && sleep 5s \
-&& yarn query --query=4 --worker=4 --concurrency=2000 --maxDbConnection=250 --period=180 > output/q4.txt \
+&& yarn query --query=4 --worker=4 --concurrency=4000 --maxDbConnection=250 --period=180 > output/q4.txt \
 && sleep 5s \
-&& yarn query --query=5 --worker=4 --concurrency=2000 --maxDbConnection=250 --period=180 > output/q5.txt
+&& yarn query --query=5 --worker=4 --concurrency=4000 --maxDbConnection=250 --period=180 > output/q5.txt
 
 ```

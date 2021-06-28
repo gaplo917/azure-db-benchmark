@@ -92,7 +92,8 @@ if (isMainThread) {
           [2, () => [[ReadQueries.query2SQL, ReadQueries.query2Params(paramCount, Number(count))]]],
           [3, () => [[ReadQueries.query3SQL, ReadQueries.query3Params(paramCount, Number(count))]]],
           [4, () => [[ReadQueries.query4SQL, ReadQueries.query4Params(paramCount, Number(count))]]],
-          [5, () => [[ReadQueries.query5SQL, ReadQueries.query5Params(paramCount, Number(count))]]]
+          [5, () => [[ReadQueries.query5SQL, ReadQueries.query5Params(paramCount, Number(count))]]],
+          [6, () => [[ReadQueries.query6SQL, ReadQueries.query6Params(paramCount, Number(count))]]]
         ])
 
         // create target job
