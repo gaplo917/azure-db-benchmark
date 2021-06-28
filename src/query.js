@@ -33,7 +33,7 @@ if (isMainThread) {
   })()
 } else {
   // large enough to prevent query cache
-  const paramCount = 3_000_000
+  const paramCount = 1_000_000
   let processed = 0
   let error = 0
   let finished = false
