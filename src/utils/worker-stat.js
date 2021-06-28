@@ -1,3 +1,5 @@
+const { timeElapsedInSecondsSince } = require('./utils')
+
 const aggregateProcessed = stats => {
   return stats
     .map(it => it.processed)
@@ -5,9 +7,9 @@ const aggregateProcessed = stats => {
     .toFixed(2)
 }
 
-const aggregateTotalTimeout = stats => {
+const aggregateTotalError = stats => {
   return stats
-    .map(it => it.timeout)
+    .map(it => it.error)
     .reduce((acc, e) => acc + e, 0)
     .toFixed(2)
 }
@@ -17,8 +19,12 @@ const aggregateTimeUsed = stats => {
     .reduce((acc, e) => acc + e, 0)
     .toFixed(2)
 }
-const calcProgress = ({ stats, totalRecords }) => {
-  return Number(aggregateProcessed(stats) / totalRecords).toFixed(4)
+const calcProgress = ({ start, stats, totalRecords, period }) => {
+  if (period) {
+    return Math.min(1, Number(timeElapsedInSecondsSince(start) / period)).toFixed(4)
+  } else {
+    return Number(aggregateProcessed(stats) / totalRecords).toFixed(4)
+  }
 }
 const calcAvgRate = stats => {
   const minStartAt = stats.map(it => it.startedAt).sort((a, b) => a - b)[0]
@@ -29,7 +35,7 @@ const calcAvgRate = stats => {
 module.exports = {
   aggregateTimeUsed,
   aggregateProcessed,
-  aggregateTotalTimeout,
+  aggregateTotalError,
   calcProgress,
   calcAvgRate
 }

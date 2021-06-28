@@ -1,10 +1,9 @@
 const faker = require('faker')
-const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const { randomSeed = 1 } = argv
-
-faker.seed(randomSeed)
 
 class ReadQueries {
+  static setRandomSeed(randomSeed) {
+    faker.seed(randomSeed)
+  }
   static query0SQL = `
     SELECT id
     FROM companies

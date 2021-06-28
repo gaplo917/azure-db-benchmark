@@ -3,14 +3,14 @@ const logger = require('pino')()
 const {
   aggregateTimeUsed,
   aggregateProcessed,
-  aggregateTotalTimeout,
+  aggregateTotalError,
   calcProgress,
   calcAvgRate
 } = require('./worker-stat')
 
 const { timeElapsedInSecondsSince } = require('./utils')
 
-const startReportProgress = ({ totalRecords, workerStats }) => {
+const startReportProgress = ({ totalRecords = null, period = null, workerStats }) => {
   const start = new Date().getTime()
   let lastRecord = {
     totalProcessed: 0,
@@ -24,9 +24,9 @@ const startReportProgress = ({ totalRecords, workerStats }) => {
 
     const data = {
       totalProcessed: aggregateProcessed(stats),
-      totalTimeout: aggregateTotalTimeout(stats),
+      totalError: aggregateTotalError(stats),
       totalTimeUsed: aggregateTimeUsed(stats),
-      progress: calcProgress({ stats, totalRecords }),
+      progress: calcProgress({ start, stats, totalRecords, period }),
       avgProcessRate: `${calcAvgRate(stats)}/s`,
       timeElapsedInSeconds: timeElapsedInSecondsSince(start)
     }
@@ -48,9 +48,9 @@ const startReportProgress = ({ totalRecords, workerStats }) => {
 
     logger.info({
       totalProcessed: aggregateProcessed(stats),
-      totalTimeout: aggregateTotalTimeout(stats),
+      totalError: aggregateTotalError(stats),
       totalTimeUsed: aggregateTimeUsed(stats),
-      progress: calcProgress({ stats, totalRecords }),
+      progress: calcProgress({ start, stats, totalRecords, period }),
       avgProcessRate: `${calcAvgRate(stats)}/s`,
       timeElapsedInSeconds: timeElapsedInSecondsSince(start)
     })

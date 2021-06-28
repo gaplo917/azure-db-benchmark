@@ -2,88 +2,18 @@ const { runBenchmark } = require('./run-benchmark')
 const { startReportProgress } = require('./utils/start-report-progress')
 require('dotenv').config()
 const logger = require('pino')()
-const { Worker, isMainThread, parentPort, workerData } = require('worker_threads')
+const { isMainThread, parentPort, workerData } = require('worker_threads')
 const { WriteQueries } = require('./sql/write-queries')
 const { delay, divideWorkFairly, Message, timeElapsedInSecondsSince } = require('./utils/utils')
 const { argv } = require('yargs/yargs')(process.argv.slice(2))
-const {
-  worker: workerCount = 4,
-  concurrency = 2000,
-  maxDbConnection = 40,
-  numOfDataSet = 2000
-} = argv
+const { runWorker } = require('./utils/run-worker')
+
+const { worker: workerCount = 4, concurrency = 2000, maxDbConnection = 40, numOfDataSet = 2000 } = argv
 const DATASET_SIZE_LIMIT = 1000
 
 if (isMainThread) {
   const { numOfRecords } = require('./generate-data')
   const workerStats = new Map()
-  function runWorker({ workerId, concurrency, maxDbConnection, numOfDataSet }) {
-    return new Promise((resolve, reject) => {
-      const workerData = {
-        workerId,
-        concurrency: concurrency,
-        maxDbConnection: maxDbConnection,
-        numOfDataSet
-      }
-      logger.info({
-        message: 'create new worker',
-        workerData
-      })
-      const worker = new Worker(__filename, {
-        workerData
-      })
-      worker.on('message', ({ type, payload }) => {
-        switch (type) {
-          case Message.INIT:
-            workerStats.set(workerId, {
-              isDone: false,
-              startedAt: new Date().getTime(),
-              processed: 0,
-              timeElapsedInSeconds: 0
-            })
-            logger.info({
-              message: 'new worker join',
-              workerPayload: payload
-            })
-            break
-          case Message.PROGRESS:
-            workerStats.set(workerId, {
-              ...workerStats.get(workerId),
-              timeout: Number(payload.timeout),
-              processed: Number(payload.processed),
-              timeElapsedInSeconds: Number(payload.timeElapsedInSeconds)
-            })
-            break
-          case Message.DONE:
-            workerStats.set(workerId, {
-              ...workerStats.get(workerId),
-              isDone: true,
-              endedAt: new Date().getTime(),
-              timeout: Number(payload.timeout),
-              processed: Number(payload.processed),
-              timeElapsedInSeconds: Number(payload.timeElapsedInSeconds)
-            })
-            logger.info({
-              message: 'worker done',
-              workerId,
-              workerPayload: payload
-            })
-            break
-          default:
-            logger.warn({
-              message: 'unsupported message type:' + type
-            })
-        }
-      })
-      worker.on('error', reject)
-      worker.on('exit', code => {
-        if (code !== 0) {
-          logger.error(new Error(`Worker stopped with exit code ${code}`))
-        }
-        resolve()
-      })
-    })
-  }
 
   ;(async function main() {
     const totalRecords = numOfDataSet * numOfRecords
@@ -108,6 +38,8 @@ if (isMainThread) {
           while (dataSetLeft > 0) {
             const dataSetSize = dataSetLeft > DATASET_SIZE_LIMIT ? DATASET_SIZE_LIMIT : dataSetLeft
             await runWorker({
+              workerFilename: __filename,
+              workerStats,
               workerId: `${index}-${dividedCount}`,
               concurrency: concurrencyArr[index],
               maxDbConnection: maxDBConnectionArr[index],
@@ -123,6 +55,8 @@ if (isMainThread) {
     } else {
       const jobs = new Array(workerCount).fill(null).map((_, index) =>
         runWorker({
+          workerFilename: __filename,
+          workerStats,
           workerId: index,
           concurrency: concurrencyArr[index],
           maxDbConnection: maxDBConnectionArr[index],
@@ -138,9 +72,9 @@ if (isMainThread) {
   const { generateData, numOfRecords } = require('./generate-data')
 
   let processed = 0
-  let timeout = 0
+  let error = 0
 
-  const timeoutHandler = () => timeout++
+  const errorHandler = () => error++
 
   const busyDispatcher = async ({ pool, index, dataSet }) => {
     // write enough copy
@@ -149,7 +83,7 @@ if (isMainThread) {
       const pos0 = index % company.length
       const { rows: r0 } = await pool
         .query(WriteQueries.insertCompanySQL, WriteQueries.companyToQueryParam(company[pos0]))
-        .catch(timeoutHandler)
+        .catch(errorHandler)
       processed++
       const { id: companyId } = r0[0]
 
@@ -162,7 +96,7 @@ if (isMainThread) {
             WriteQueries.insertCampaignSQL,
             WriteQueries.campaignToQueryParam({ companyId, campaign: campaign[pos1] })
           )
-          .catch(timeoutHandler)
+          .catch(errorHandler)
         processed++
         const { id: campaignId } = r1[0]
 
@@ -171,11 +105,8 @@ if (isMainThread) {
         for (let j = 0; j < div1; j++) {
           const pos2 = pos1 * div1 + j
           const { rows: r2 } = await pool
-            .query(
-              WriteQueries.insertAdSQL,
-              WriteQueries.adToQueryParam({ companyId, campaignId, ad: ads[pos2] })
-            )
-            .catch(timeoutHandler)
+            .query(WriteQueries.insertAdSQL, WriteQueries.adToQueryParam({ companyId, campaignId, ad: ads[pos2] }))
+            .catch(errorHandler)
           processed++
           const { id: adId } = r2[0]
 
@@ -192,7 +123,7 @@ if (isMainThread) {
                   click: click[pos3]
                 })
               )
-              .catch(timeoutHandler)
+              .catch(errorHandler)
             processed++
           }
 
@@ -209,7 +140,7 @@ if (isMainThread) {
                   impression: impression[pos3]
                 })
               )
-              .catch(timeoutHandler)
+              .catch(errorHandler)
             processed++
           }
         }
@@ -229,9 +160,7 @@ if (isMainThread) {
       },
       async pool => {
         // prepare data before any timing
-        const dataSet = new Array(numOfDataSet)
-          .fill(null)
-          .map((_, index) => generateData(`${workerId}-${index}`))
+        const dataSet = new Array(numOfDataSet).fill(null).map((_, index) => generateData(`${workerId}-${index}`))
 
         const start = new Date().getTime()
 
@@ -248,17 +177,13 @@ if (isMainThread) {
           parentPort.postMessage(
             Message.createProgressMessage({
               processed,
-              timeout,
+              error,
               timeElapsedInSeconds: timeElapsedInSecondsSince(start)
             })
           )
         }, 1000)
 
-        await Promise.all(
-          new Array(concurrency)
-            .fill(null)
-            .map((_, index) => busyDispatcher({ pool, index, dataSet }))
-        )
+        await Promise.all(new Array(concurrency).fill(null).map((_, index) => busyDispatcher({ pool, index, dataSet })))
 
         clearInterval(reportProgressInterval)
 
@@ -266,7 +191,7 @@ if (isMainThread) {
         parentPort.postMessage(
           Message.createDoneMessage({
             processed,
-            timeout,
+            error,
             timeElapsedInSeconds: timeElapsedInSecondsSince(start)
           })
         )
