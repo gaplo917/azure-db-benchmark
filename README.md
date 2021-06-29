@@ -1,6 +1,7 @@
-## Azure DB benchmark
-TBD
+## PostgreSQL & Citus Scaling Benchmark
+Simple data analytic use case to test data sharding in Citus-powered PostgreSQL.
 
+Using node.js clients to insert/query PostgreSQL database and check the result.
 
 ### Local development
 ```bash
@@ -25,8 +26,8 @@ yarn ping
 # benchmark insert
 yarn insert
 
-# benchmark query
-yarn query
+# benchmark query, query={0,1,2,3,4,5,6}
+yarn query --query=0
 ```
 
 ### Benchmark Client
@@ -54,10 +55,13 @@ vi .env
 # test connection
 yarn ping
 
-# init database
+# init database (drop all tables and create again)
 yarn reset 
-# OR if it is a citus powered postgresql
+# OR if it is a citus powered postgresql, do an extra step for data sharding
 yarn reset-citus
+
+# Re-balance citus distributed table after scaling database
+yarn rebalance
 
 # insert reproducible random data with 4000 dataset (2.2M records, ~1.2GB)
 yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4000
@@ -66,7 +70,7 @@ yarn insert --worker=4 --concurrency=2000 --maxDbConnection=250 --numOfDataSet=4
 yarn insert --worker=8 --concurrency=8000 --maxDbConnection=500 --numOfDataSet=240000
 
 # query={0,1,2,3} light workload weight query(all hit index with random parameters)
-# query={4} medium workload query (all hit index with random parameters but large amount of data join)
+# query={4} heavy workload query (all hit index with random parameters but large amount of data join)
 # query={5} heavy workload query (table scan and large amount of data join)
 yarn query --query=0 --worker=4 --concurrency=8000 --maxDbConnection=250 --period=180 > output/q0.txt \
 && sleep 5s \
@@ -80,4 +84,6 @@ yarn query --query=0 --worker=4 --concurrency=8000 --maxDbConnection=250 --perio
 && sleep 5s \
 && yarn query --query=5 --worker=4 --concurrency=4000 --maxDbConnection=250 --period=180 > output/q5.txt
 
+# query={6} test Citus distributed tables aggregate overhead
+yarn query --query=6 --worker=4 --concurrency=2000 --maxDbConnection=250 --period=180 > output/q6.txt
 ```
