@@ -8,7 +8,6 @@ class ReadQueries {
     SELECT id
     FROM companies
     WHERE id = $1 AND created_at > $2 AND created_at < $3
-    ORDER BY created_at
   `
   static query0Params = (workload, maxCompanyId) =>
     new Array(workload).fill(null).map(() => {
